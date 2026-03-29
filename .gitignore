@@ -116,6 +116,7 @@ build_java_dist.bat
 HWID.txt
 *.keystore
 *.jks
+github-ruleset-owner-only.json
 
 ##############################
 # Logs Safebox (se abilitati)

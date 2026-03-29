@@ -1267,83 +1267,40 @@ public class MainController implements ProgressObserver {
             @Override
             protected Void call() throws Exception {
 
-                long copied = 0;
-                long lastUpdate = 0;
-                long startNanos = System.nanoTime();
+                SecretKey key = VaultRepository.VAULT_CONTEXT.getKeyEnc();
 
-                SecretKey key =  VaultRepository.VAULT_CONTEXT.getKeyEnc();
+                try {
+                    decryptBlobToTemp(key, sf, temp, totalBytes);
+                } catch (org.bouncycastle.crypto.InvalidCipherTextException gcmFail) {
+                    // Fallback: il blob potrebbe essere cifrato con la chiave legacy
+                    // (vault salvato dopo migrazione deriveKeys senza ri-cifratura blob)
+                    SecureLogger.debug("GCM failed with current key, trying legacy key derivation");
 
-                try (RandomAccessFile raf = new RandomAccessFile(vaultPath.toFile(), "r")) {
-
-                    // Bouncy Castle GCM streaming: non bufferizza tutto in RAM
-                    GCMModeCipher gcmCipher = GCMBlockCipher.newInstance(AESEngine.newInstance());
-                    AEADParameters params = new AEADParameters(
-                            new KeyParameter(key.getEncoded()),
-                            OneCrittoV3Format.GCM_TAG_LENGTH * 8,
-                            iv
+                    @SuppressWarnings("deprecation")
+                    SecretKey legacyKey = CryptoServiceV4.deriveMasterKey(
+                            VaultRepository.VAULT_CONTEXT.getMasterPassword(),
+                            VaultRepository.VAULT_CONTEXT.getSalt()
                     );
-                    gcmCipher.init(false, params);
 
-                    raf.seek(sf.getBlobOffset());
-                    long remaining = sf.getSize();
+                    // Ri-crea il file temporaneo (il precedente contiene dati parziali/corrotti)
+                    Files.deleteIfExists(temp);
+                    Path retryTemp = TempVaultFiles.createTempFileForOpen(sf.getName());
 
-                    try (OutputStream out = Files.newOutputStream(temp)) {
-
-                        byte[] buf = new byte[8192];
-
-                        while (remaining > 0) {
-                            if (isCancelled()) {
-                                return null;
-                            }
-
-                            int toRead = (int) Math.min(buf.length, remaining);
-                            int n = raf.read(buf, 0, toRead);
-                            if (n == -1) throw new IOException("EOF prematuro nel vault");
-                            remaining -= n;
-
-                            byte[] outBuf = new byte[gcmCipher.getUpdateOutputSize(n)];
-                            int produced = gcmCipher.processBytes(buf, 0, n, outBuf, 0);
-                            if (produced > 0) {
-                                out.write(outBuf, 0, produced);
-                            }
-                            copied += produced;
-
-                            long now = System.currentTimeMillis();
-                            if (now - lastUpdate > 50) {
-                                lastUpdate = now;
-
-                                updateProgress(copied, totalBytes);
-
-                                long elapsed = System.nanoTime() - startNanos;
-                                double sec = elapsed / 1_000_000_000.0;
-                                double speed = sec > 0 ? copied / sec : 0;
-                                long remainingBytes = totalBytes - copied;
-                                double eta = speed > 0 ? remainingBytes / speed : -1;
-
-                                double percent = (copied * 100.0) / totalBytes;
-                                double speedMB = speed / (1024 * 1024);
-
-                                String etaText = eta > 0 ? formatEta(eta) : "calcolo…";
-
-                                Platform.runLater(() -> {
-                                    fileProgressPercentLabel.setText(String.format("%.0f%%", percent));
-                                    fileProgressDetailsLabel.setText(
-                                            String.format("%.2f MB/s, ETA: %s", speedMB, etaText)
-                                    );
-                                });
-                            }
-                        }
-
-                        // Verifica tag GCM e scrivi eventuali byte finali
-                        byte[] finalBuf = new byte[gcmCipher.getOutputSize(0)];
-                        int finalLen = gcmCipher.doFinal(finalBuf, 0);
-                        if (finalLen > 0) {
-                            out.write(finalBuf, 0, finalLen);
-                            copied += finalLen;
-                        }
+                    try {
+                        decryptBlobToTemp(legacyKey, sf, retryTemp, totalBytes);
+                    } catch (Exception retryFail) {
+                        Files.deleteIfExists(retryTemp);
+                        throw retryFail;
                     }
+
+                    // Legacy key funziona: copiamo il risultato nel path atteso
+                    Files.move(retryTemp, temp, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+
+                    // Salva la legacy key per la ri-cifratura al prossimo save
+                    VaultRepository.VAULT_CONTEXT.setLegacyKeyEnc(legacyKey);
+                    SecureLogger.debug("File decrypted with legacy key; vault will be re-encrypted on next save");
                 }
-                // cleanup minimale per buffer e GC
+
                 SecureLogger.debug("Forcing light memory cleanup after decrypt");
                 System.gc();
                 return null;
@@ -1407,6 +1364,52 @@ public class MainController implements ProgressObserver {
         Thread t = new Thread(task);
         t.setDaemon(true);
         t.start();
+    }
+
+    /**
+     * Decifra un file dal vault in un file temporaneo usando la chiave specificata.
+     * Lancia InvalidCipherTextException se il tag GCM non corrisponde (chiave errata).
+     */
+    private void decryptBlobToTemp(SecretKey key,
+                                   SecretFile sf, Path temp, long totalBytes) throws Exception {
+
+        try (RandomAccessFile raf = new RandomAccessFile(sf.getVaultPath().toFile(), "r")) {
+
+            GCMModeCipher gcmCipher = GCMBlockCipher.newInstance(AESEngine.newInstance());
+            AEADParameters params = new AEADParameters(
+                    new KeyParameter(key.getEncoded()),
+                    OneCrittoV3Format.GCM_TAG_LENGTH * 8,
+                    sf.getIv()
+            );
+            gcmCipher.init(false, params);
+
+            raf.seek(sf.getBlobOffset());
+            long remaining = sf.getSize();
+
+            try (OutputStream out = Files.newOutputStream(temp)) {
+
+                byte[] buf = new byte[8192];
+
+                while (remaining > 0) {
+                    int toRead = (int) Math.min(buf.length, remaining);
+                    int n = raf.read(buf, 0, toRead);
+                    if (n == -1) throw new IOException("EOF prematuro nel vault");
+                    remaining -= n;
+
+                    byte[] outBuf = new byte[gcmCipher.getUpdateOutputSize(n)];
+                    int produced = gcmCipher.processBytes(buf, 0, n, outBuf, 0);
+                    if (produced > 0) {
+                        out.write(outBuf, 0, produced);
+                    }
+                }
+
+                byte[] finalBuf = new byte[gcmCipher.getOutputSize(0)];
+                int finalLen = gcmCipher.doFinal(finalBuf, 0);
+                if (finalLen > 0) {
+                    out.write(finalBuf, 0, finalLen);
+                }
+            }
+        }
     }
 
     private void runSaveVaultWithProgress() {
@@ -1536,56 +1539,30 @@ public class MainController implements ProgressObserver {
             @Override
             protected Void call() throws Exception {
 
-                long copied = 0;
-                long lastUpdate = 0;
-                long startNanos = System.nanoTime();
+                SecretKey key = VaultRepository.VAULT_CONTEXT.getKeyEnc();
 
-                // Chiave master derivata
-                SecretKey key =  VaultRepository.VAULT_CONTEXT.getKeyEnc();
+                try {
+                    decryptBlobToTemp(key, sf, dest.toPath(), encryptedSize);
+                } catch (org.bouncycastle.crypto.InvalidCipherTextException gcmFail) {
+                    SecureLogger.debug("Export: GCM failed with current key, trying legacy key");
 
-                try (RandomAccessFile raf = new RandomAccessFile(vaultPath.toFile(), "r")) {
-
-                    raf.seek(sf.getBlobOffset());
-
-                    // Bouncy Castle GCM streaming: non bufferizza tutto in RAM
-                    GCMModeCipher gcmCipher = GCMBlockCipher.newInstance(AESEngine.newInstance());
-                    AEADParameters params = new AEADParameters(
-                            new KeyParameter(key.getEncoded()),
-                            OneCrittoV3Format.GCM_TAG_LENGTH * 8,
-                            iv
+                    @SuppressWarnings("deprecation")
+                    SecretKey legacyKey = CryptoServiceV4.deriveMasterKey(
+                            VaultRepository.VAULT_CONTEXT.getMasterPassword(),
+                            VaultRepository.VAULT_CONTEXT.getSalt()
                     );
-                    gcmCipher.init(false, params);
 
-                    try (OutputStream out = Files.newOutputStream(dest.toPath())) {
+                    Files.deleteIfExists(dest.toPath());
 
-                        byte[] buf = new byte[8192];
-                        long remaining = encryptedSize;
-
-                        while (remaining > 0) {
-                            if (isCancelled()) return null;
-
-                            int toRead = (int) Math.min(buf.length, remaining);
-                            int n = raf.read(buf, 0, toRead);
-                            if (n == -1) throw new IOException("EOF prematuro nel vault");
-
-                            remaining -= n;
-
-                            byte[] outBuf = new byte[gcmCipher.getUpdateOutputSize(n)];
-                            int produced = gcmCipher.processBytes(buf, 0, n, outBuf, 0);
-                            if (produced > 0) {
-                                out.write(outBuf, 0, produced);
-                                copied += produced;
-                            }
-                        }
-
-                        // Verifica tag GCM e scrivi eventuali byte finali
-                        byte[] finalBuf = new byte[gcmCipher.getOutputSize(0)];
-                        int finalLen = gcmCipher.doFinal(finalBuf, 0);
-                        if (finalLen > 0) {
-                            out.write(finalBuf, 0, finalLen);
-                            copied += finalLen;
-                        }
+                    try {
+                        decryptBlobToTemp(legacyKey, sf, dest.toPath(), encryptedSize);
+                    } catch (Exception retryFail) {
+                        Files.deleteIfExists(dest.toPath());
+                        throw retryFail;
                     }
+
+                    VaultRepository.VAULT_CONTEXT.setLegacyKeyEnc(legacyKey);
+                    SecureLogger.debug("Export: decrypted with legacy key");
                 }
 
                 return null;

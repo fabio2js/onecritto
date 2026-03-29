@@ -117,9 +117,16 @@ public class VaultRepository extends ProgressObservable {
                 if (CryptoServiceV4.verifyHmac(input, legacyKey, hmacPos)) {
                     key = legacyKey;
                     VAULT_CONTEXT.setKeyEnc(key);
+                    // Salva la chiave legacy per consentire la ri-cifratura dei blob
+                    // durante il prossimo salvataggio (migrazione a deriveKeys 64 byte)
+                    VAULT_CONTEXT.setLegacyKeyEnc(legacyKey);
+                    SecureLogger.debug("loadVaultV4: fallback a chiave legacy (32 byte)");
                 } else {
                     throw new SecurityException("HMAC non valido: file corrotto o password errata");
                 }
+            } else {
+                // Vault già migrato: nessuna chiave legacy
+                VAULT_CONTEXT.setLegacyKeyEnc(null);
             }
             notifyProgress(0.75);
             byte[] metadataJson = CryptoServiceV3.decryptMetadata(encMeta, key, metaIv);
@@ -251,6 +258,14 @@ public class VaultRepository extends ProgressObservable {
                     VAULT_CONTEXT.getMasterPassword(), salt);
             SecretKey key = keys[0];
             SecretKey hmacKey = keys[1];
+
+            // Rileva se serve ri-cifrare i blob (migrazione da chiave legacy 32 byte)
+            SecretKey legacyKey = VAULT_CONTEXT.getLegacyKeyEnc();
+            boolean needsReEncrypt = legacyKey != null;
+            if (needsReEncrypt) {
+                SecureLogger.debug("saveVault: migrazione chiave legacy → deriveKeys, ri-cifratura blob file");
+            }
+
             VAULT_CONTEXT.setKeyEnc(key);
             // 3) METADATA in memoria
             VaultMetadata metadata = new VaultMetadata();
@@ -326,8 +341,9 @@ public class VaultRepository extends ProgressObservable {
                                     && f.getBlobOffset() > 0
                                     && f.getSize() > 0;
 
-                    if (copyFromOldVault) {
+                    if (copyFromOldVault && !needsReEncrypt) {
 
+                        // Caso A: copia diretta del blob cifrato (stessa chiave)
                         long oldIvOffset = f.getBlobOffset() - OneCrittoV3Format.FILE_IV_LENGTH;
                         long toCopy = OneCrittoV3Format.FILE_IV_LENGTH + f.getSize();
 
@@ -371,6 +387,43 @@ public class VaultRepository extends ProgressObservable {
                         f.setBlobOffset(contentOffsetNew);
                         f.setSize(encryptedSize);
                         // iv resta quello già presente in f.getIv()
+
+                    } else if (copyFromOldVault && needsReEncrypt) {
+
+                        // Caso A-bis: migrazione chiave legacy → ri-cifra il blob
+                        if (rafOld == null) {
+                            throw new IOException("Vault precedente non disponibile per ri-cifratura");
+                        }
+
+                        byte[] newFileIv = CryptoServiceV3.randomBytes(OneCrittoV3Format.FILE_IV_LENGTH);
+                        out.write(newFileIv);
+                        out.flush();
+
+                        long contentOffsetNew = fos.getChannel().position();
+
+                        CryptoServiceV3.reencryptStream(
+                                rafOld, f.getBlobOffset(), f.getSize(),
+                                legacyKey, f.getIv(),
+                                out, key, newFileIv
+                        );
+                        out.flush();
+
+                        long after = fos.getChannel().position();
+                        long encryptedSize = after - contentOffsetNew;
+
+                        fm.setOffset(ivOffsetNew);
+                        fm.setSize(encryptedSize);
+
+                        writtenBytesForProgress += encryptedSize;
+                        if (totalBytesForProgress > 0) {
+                            double progress = (double) writtenBytesForProgress / (double) totalBytesForProgress;
+                            notifyProgress(progress);
+                            notifyMessage("Ri-cifratura " + f.getName() + " (" + String.format("%.0f%%", progress * 100) + ")");
+                        }
+
+                        f.setBlobOffset(contentOffsetNew);
+                        f.setSize(encryptedSize);
+                        f.setIv(newFileIv);
 
                     } else {
 
@@ -523,6 +576,13 @@ public class VaultRepository extends ProgressObservable {
             for (SecretFile f : vault.getFiles()) {
                 f.setVaultPath(output);
             }
+        }
+
+        // 9) Migrazione completata: cancella chiave legacy
+        if (VAULT_CONTEXT.getLegacyKeyEnc() != null) {
+            try { VAULT_CONTEXT.getLegacyKeyEnc().destroy(); } catch (Exception ignored) {}
+            VAULT_CONTEXT.setLegacyKeyEnc(null);
+            SecureLogger.debug("saveVault: migrazione chiave legacy completata");
         }
     }
     private static long usedMB() {

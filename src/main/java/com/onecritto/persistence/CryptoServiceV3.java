@@ -12,6 +12,7 @@ import org.bouncycastle.crypto.params.KeyParameter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.RandomAccessFile;
 import java.security.GeneralSecurityException;
 import java.security.SecureRandom;
 
@@ -141,6 +142,86 @@ public class CryptoServiceV3 {
 
         // non chiudiamo out, lo fa il chiamante
         return writtenPlain;
+    }
+
+    /**
+     * Ri-cifra un blob in streaming: decifra con oldKey/oldIv e ri-cifra con newKey/newIv.
+     * Usato durante la migrazione da chiave legacy (32 byte) a deriveKeys (64 byte).
+     *
+     * @return il numero di byte di plaintext processati
+     */
+    public static long reencryptStream(RandomAccessFile rafOld,
+                                       long blobOffset, long blobSize,
+                                       SecretKey oldKey, byte[] oldIv,
+                                       OutputStream out,
+                                       SecretKey newKey, byte[] newIv)
+            throws Exception {
+
+        // Cipher di decifratura (vecchia chiave)
+        GCMModeCipher decCipher = GCMBlockCipher.newInstance(AESEngine.newInstance());
+        AEADParameters decParams = new AEADParameters(
+                new KeyParameter(oldKey.getEncoded()),
+                OneCrittoV3Format.GCM_TAG_LENGTH * 8,
+                oldIv
+        );
+        decCipher.init(false, decParams);
+
+        // Cipher di cifratura (nuova chiave)
+        GCMModeCipher encCipher = GCMBlockCipher.newInstance(AESEngine.newInstance());
+        AEADParameters encParams = new AEADParameters(
+                new KeyParameter(newKey.getEncoded()),
+                OneCrittoV3Format.GCM_TAG_LENGTH * 8,
+                newIv
+        );
+        encCipher.init(true, encParams);
+
+        rafOld.seek(blobOffset);
+        long remaining = blobSize;
+        long totalPlain = 0;
+        byte[] buf = new byte[8192];
+
+        while (remaining > 0) {
+            int toRead = (int) Math.min(buf.length, remaining);
+            int n = rafOld.read(buf, 0, toRead);
+            if (n == -1) throw new IOException("EOF prematuro durante ri-cifratura");
+            remaining -= n;
+
+            // Decrypt chunk
+            byte[] decBuf = new byte[decCipher.getUpdateOutputSize(n)];
+            int decProduced = decCipher.processBytes(buf, 0, n, decBuf, 0);
+
+            if (decProduced > 0) {
+                totalPlain += decProduced;
+                // Encrypt il plaintext decifrato
+                byte[] encBuf = new byte[encCipher.getUpdateOutputSize(decProduced)];
+                int encProduced = encCipher.processBytes(decBuf, 0, decProduced, encBuf, 0);
+                if (encProduced > 0) {
+                    out.write(encBuf, 0, encProduced);
+                }
+            }
+        }
+
+        // Finalizza decifratura (verifica tag GCM vecchio)
+        byte[] decFinal = new byte[decCipher.getOutputSize(0)];
+        int decFinalLen = decCipher.doFinal(decFinal, 0);
+
+        if (decFinalLen > 0) {
+            totalPlain += decFinalLen;
+            byte[] encBuf = new byte[encCipher.getUpdateOutputSize(decFinalLen)];
+            int encProduced = encCipher.processBytes(decFinal, 0, decFinalLen, encBuf, 0);
+            if (encProduced > 0) {
+                out.write(encBuf, 0, encProduced);
+            }
+        }
+
+        // Finalizza cifratura (scrivi nuovo tag GCM)
+        byte[] encFinal = new byte[encCipher.getOutputSize(0)];
+        int encFinalLen = encCipher.doFinal(encFinal, 0);
+        if (encFinalLen > 0) {
+            out.write(encFinal, 0, encFinalLen);
+        }
+
+        return totalPlain;
     }
 
 
