@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import de.jensd.fx.glyphs.fontawesome.FontAwesomeIconView?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.image.Image?>
+<?import com.onecritto.ui.secure.SecureTextField?>
+
+<StackPane fx:id="mainRoot" xmlns:fx="http://javafx.com/fxml"
+           fx:controller="com.onecritto.ui.MainController" >
+
+    <BorderPane fx:id="appRoot"
+                prefWidth="900"
+                prefHeight="700" styleClass="background-surface"  >
+
+        <!-- HEADER -->
+        <top>
+            <VBox>
+
+
+                <!-- Header già esistente -->
+                <HBox spacing="15" alignment="CENTER_LEFT" styleClass="header-bar">
+                    <ImageView fitHeight="38" preserveRatio="true" smooth="true">
+                        <image><Image url="@/icons/logo_original.png" requestedHeight="76" preserveRatio="true" smooth="true"/></image>
+                    </ImageView>
+
+                    <Region HBox.hgrow="ALWAYS"/>
+
+                    <!-- Sentinel Health Badge -->
+                    <Label fx:id="sentinelHealthBadge"
+                           text=""
+                           onMouseClicked="#handleSentinelDashboard"
+                           style="-fx-cursor: hand;"/>
+                </HBox>
+            </VBox>
+        </top>
+
+        <!-- CONTENT -->
+        <center>
+            <VBox spacing="15" VBox.vgrow="ALWAYS">
+
+                <HBox spacing="15" alignment="CENTER_LEFT" style="-fx-padding: 10 10 0 10;">
+
+                    <!-- Label info dinamica -->
+                    <Label fx:id="infoLabel" styleClass="stats-label"/>
+
+                    <Region HBox.hgrow="ALWAYS"/>
+
+                    <HBox spacing="10" alignment="CENTER_RIGHT">
+
+                        <Button fx:id="homeButton" styleClass="small-button">
+                            <graphic><FontAwesomeIconView glyphName="HOME" glyphSize="14"/></graphic>
+                        </Button>
+
+                        <Button styleClass="small-button">
+                            <graphic><FontAwesomeIconView glyphName="SEARCH" glyphSize="14"/></graphic>
+                        </Button>
+
+                        <TextField fx:id="searchTextField"
+                                   promptText="%search.prompt"
+                                   prefWidth="200"/>
+                    </HBox>
+                </HBox>
+
+                <TabPane fx:id="mainTabs" tabClosingPolicy="UNAVAILABLE" VBox.vgrow="ALWAYS">
+
+                    <tabs>
+
+                        <!-- TAB PASSWORD -->
+                        <Tab text="%main.tab.password" fx:id="tabPassowrd">
+                            <content>
+                                <VBox spacing="10">
+
+                                    <TableView fx:id="tableEntries">
+                                        <columns>
+                                            <TableColumn fx:id="titleColumn" text="%main.col.title" prefWidth="180"/>
+                                            <TableColumn fx:id="usernameColumn" text="%main.col.username" prefWidth="180"/>     
+                                            <TableColumn fx:id="strengthColumn" text="%main.col.strength" prefWidth="180"/>
+                                            <TableColumn fx:id="categoryColumn" text="%main.col.category"/>
+                                            <TableColumn fx:id="noteColumn" text="%main.col.note" prefWidth="180"/>
+                                            <TableColumn fx:id="entryCreatedAtColumn" text="%main.col.createdAt"  />
+                                            <TableColumn fx:id="entryPasswordChangedColumn" text="%main.col.passwordChanged" />
+                                        </columns>
+                                    </TableView>
+
+                                    <HBox spacing="12" style="-fx-padding:10 10 10 10;">
+                                        <Button text="%main.btn.add" onAction="#handleAdd">
+                                            <graphic><FontAwesomeIconView glyphName="PLUS" glyphSize="14"/></graphic>
+                                        </Button>
+                                        <Button text="%main.btn.edit" onAction="#handleEdit">
+                                            <graphic><FontAwesomeIconView glyphName="EDIT" glyphSize="14"/></graphic>
+                                        </Button>
+                                        <Button text="%main.btn.delete" onAction="#handleDeleteEntry">
+                                            <graphic><FontAwesomeIconView glyphName="TRASH" glyphSize="14"/></graphic>
+                                        </Button>
+
+                                        <Region HBox.hgrow="ALWAYS"/>
+
+                                        <Button text="%main.btn.coach" onAction="#handlePasswordCoach">
+                                            <graphic><FontAwesomeIconView glyphName="GRADUATION_CAP" glyphSize="14"/></graphic>
+                                        </Button>
+
+                                        <Button text="%main.btn.breach" onAction="#handleBreachChecker">
+                                            <graphic><FontAwesomeIconView glyphName="SHIELD" glyphSize="14"/></graphic>
+                                        </Button>
+
+
+                                    </HBox>
+
+                                </VBox>
+                            </content>
+                        </Tab>
+
+                        <!-- TAB FILE -->
+                        <Tab text="%main.tab.files" fx:id="tabFiles">
+                            <content>
+                                <VBox spacing="12" VBox.vgrow="ALWAYS">
+
+                                    <TableView fx:id="fileTable">
+                                        <columns>
+                                            <TableColumn fx:id="fileNameColumn" text="%main.col.filename"/>
+                                            <TableColumn fx:id="fileSizeColumn" text="%main.col.size"/>
+                                            <TableColumn fx:id="fileTypeColumn" text="%main.col.type"/>
+                                            <TableColumn fx:id="fileLastEditColumn" text="%main.col.lastedit"/>
+                                            <TableColumn fx:id="fileAddTimeColumn" text="%main.col.added"/>
+                                        </columns>
+                                    </TableView>
+
+                                    <HBox spacing="12" style="-fx-padding:10 10 10 10;">
+                                        <Button text="%main.btn.addfile" fx:id="btnAddFile" onAction="#handleAddFile">
+                                            <graphic><FontAwesomeIconView glyphName="UPLOAD" glyphSize="14"/></graphic>
+                                        </Button>
+                                        <Button text="%main.btn.openfile" fx:id="btnOpenFile" onAction="#handleOpenFile">
+                                            <graphic><FontAwesomeIconView glyphName="FOLDER_OPEN" glyphSize="14"/></graphic>
+                                        </Button>
+                                        <Button text="%main.btn.exportfile" fx:id="btnExportFile" onAction="#handleExportFile">
+                                            <graphic><FontAwesomeIconView glyphName="DOWNLOAD" glyphSize="14"/></graphic>
+                                        </Button>
+                                        <Button text="%main.btn.deletefile" fx:id="btnElimina" onAction="#handleDeleteFile">
+                                            <graphic><FontAwesomeIconView glyphName="TRASH" glyphSize="14"/></graphic>
+                                        </Button>
+                                    </HBox>
+                                </VBox>
+                            </content>
+                        </Tab>
+
+                    </tabs>
+                </TabPane>
+
+            </VBox>
+        </center>
+
+        <!-- FOOTER -->
+        <bottom>
+            <VBox spacing="8" alignment="CENTER" style="-fx-padding: 8 0 8 0;">
+
+                <HBox spacing="10" alignment="CENTER">
+                    <ProgressBar fx:id="fileProgressBar"
+                                 prefWidth="350"
+                                 visible="false"
+                                 progress="0"/>
+                    <Label fx:id="fileProgressPercentLabel"
+                           style="-fx-font-size: 12; -fx-font-weight: bold;"/>
+                </HBox>
+
+                <Label fx:id="speedLabel" styleClass="footer-secondary-label"/>
+                <Label fx:id="etaLabel" styleClass="footer-secondary-label"/>
+                <Label fx:id="fileProgressDetailsLabel" styleClass="footer-secondary-label"/>
+                <Label fx:id="countdownLabel" styleClass="countdown-label"/>
+
+                <StackPane style="-fx-padding: 0 15 0 15;">
+                    <HBox spacing="10" alignment="CENTER_LEFT">
+                        <Label fx:id="labelPath" styleClass="footer-label"/>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <Label fx:id="labelDimension" styleClass="footer-label"/>
+                    </HBox>
+
+                    <Label fx:id="labelLicense"
+                           text="%main.footer.license"
+                           StackPane.alignment="CENTER"
+                           styleClass="footer-label"/>
+                </StackPane>
+
+            </VBox>
+        </bottom>
+
+    </BorderPane>
+
+    <!-- BUSY OVERLAY -->
+    <VBox fx:id="busyOverlay" visible="false" alignment="CENTER" spacing="15"
+          style="-fx-background-color: rgba(0,0,0,0.55);" StackPane.alignment="CENTER">
+
+        <ProgressIndicator fx:id="busySpinner" styleClass="busy-indicator"/>
+        <Label fx:id="busyLabel" text="%main.busy.overlay" styleClass="busy-label"/>
+    </VBox>
+
+    <!-- LOCK SCREEN -->
+    <VBox fx:id="lockPane" visible="false" alignment="CENTER" spacing="20"
+          style="-fx-background-color: rgba(0,0,0,0.75);" StackPane.alignment="CENTER">
+
+        <VBox alignment="CENTER" spacing="3">
+            <Label text="%main.lock.title" style="-fx-text-fill: #cfcfcf; -fx-font-size: 26px;"/>
+            <SecureTextField fx:id="unlockPasswordField"/>
+            <Button fx:id="unlockButton" text="%main.lock.button" alignment="CENTER" maxWidth="140"/>
+        </VBox>
+
+        <Label fx:id="unlockErrorLabel" alignment="CENTER" styleClass="error-label"/>
+    </VBox>
+
+</StackPane>

@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import de.jensd.fx.glyphs.fontawesome.FontAwesomeIconView?>
+<?import com.onecritto.ui.secure.SecureTextField?>
+<?import com.onecritto.ui.secure.SecureTextArea?>
+<?import javafx.geometry.Insets?>
+
+<VBox spacing="12" xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.onecritto.ui.EntryEditController">
+    <padding>
+        <Insets top="20" right="20" bottom="20" left="20"/>
+    </padding>
+
+    <VBox spacing="4">
+
+        <!-- TITOLARE DEL CAMPO -->
+        <Label text="%entry.field.title"
+               VBox.vgrow="NEVER"
+        />
+
+        <!-- TEXTFIELD con placeholder -->
+        <TextField fx:id="titleField"
+                   promptText="%entry.field.title.placeholder"
+                   VBox.vgrow="NEVER"/>
+    </VBox>
+
+    <SecureTextField fx:id="usernameField" />
+
+    <HBox spacing="5">
+        <SecureTextField fx:id="secretField" HBox.hgrow="ALWAYS"/>
+    </HBox>
+
+    <HBox spacing="10">
+        <VBox spacing="14" HBox.hgrow="ALWAYS">
+
+            <HBox spacing="8">
+                <VBox HBox.hgrow="ALWAYS">
+                    <ProgressBar fx:id="passwordStrengthBar"
+                                 progress="0"
+                                 HBox.hgrow="ALWAYS"
+                                 maxWidth="Infinity"
+                                 style="-fx-accent: red;" />
+                    <Label fx:id="passwordStrengthLabel" styleClass="helper-text" />
+                </VBox>
+
+                <Button fx:id="togglePasswordGenerator"
+                        onAction="#handleOpenPasswordGenerator"
+                        styleClass="small-button">
+                    <graphic>
+                        <FontAwesomeIconView fx:id="genPassword"
+                                             glyphName="MAGIC"
+                                             glyphSize="16"/>
+                    </graphic>
+                </Button>
+            </HBox>
+
+        </VBox>
+    </HBox>
+
+    <VBox>
+        <SecureTextArea fx:id="notesField"/>
+    </VBox>
+
+    <HBox spacing="10" alignment="CENTER_LEFT">
+        <Label text="%entry.field.category"
+               style="-fx-label-padding: 0 0 0 2;"/>
+        <ComboBox fx:id="categoryBox"
+                  prefWidth="180"
+                  VBox.vgrow="NEVER"/>
+    </HBox>
+
+    <HBox spacing="10" alignment="CENTER_RIGHT">
+        <Button text="%cancel" onAction="#handleCancel"/>
+        <Button text="%save" onAction="#handleSave"/>
+    </HBox>
+
+</VBox>

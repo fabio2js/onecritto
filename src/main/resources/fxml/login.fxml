@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.image.Image?>
+<?import com.onecritto.ui.secure.SecureTextField?>
+<?import de.jensd.fx.glyphs.fontawesome.FontAwesomeIconView?>
+<?import javafx.scene.text.TextFlow?>
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.onecritto.ui.LoginController"
+      alignment="CENTER"
+      fx:id="rootContainer"
+      spacing="15"    >
+
+    <padding>
+        <Insets top="30" right="40" bottom="30" left="40"/>
+    </padding>
+
+    <ImageView fitHeight="45" preserveRatio="true" smooth="true">
+        <image>
+            <Image url="@/icons/logo_original.png" requestedHeight="90" preserveRatio="true" smooth="true"/>
+        </image>
+    </ImageView>
+
+
+        <TextFlow fx:id="loginHelpText"
+                  textAlignment="CENTER"
+                  maxWidth="450"
+                  style="-fx-text-fill: #cccccc; -fx-font-size: 12;"
+                  VBox.vgrow="NEVER" />
+
+
+    <HBox spacing="5" alignment="CENTER" minWidth="555"
+          styleClass="login-transparent"  >
+
+        <SecureTextField fx:id="masterPasswordField"
+                         HBox.hgrow="ALWAYS"
+                         style="-fx-font-size: 14px;"
+                         styleClass="login-secure-field-container"/>
+
+
+    </HBox>
+
+    <VBox alignment="CENTER" spacing="4" maxWidth="555">
+        <ProgressBar fx:id="strengthBar" progress="0"
+                     maxWidth="Infinity"
+                     minHeight="8" prefHeight="8" maxHeight="8"
+                     styleClass="strength-bar"/>
+        <Label fx:id="strengthLabel" alignment="CENTER"
+               style="-fx-font-size: 11; -fx-text-fill: #aaaaaa;"/>
+    </VBox>
+
+    <ProgressBar fx:id="loginProgressBar"
+                 managed="false"
+                 progress="0"
+                 maxWidth="300"
+                 minHeight="12"
+                 prefHeight="12"
+                 styleClass="onecritto-progress"
+                 VBox.vgrow="NEVER"/>
+
+    <Label fx:id="loginProgressLabel"
+           managed="false"
+    />
+
+
+    <HBox spacing="10" alignment="CENTER">
+        <Button fx:id="openVaultButton"  text="%login.open.vault"
+                onAction="#handleOpenVault"
+                prefWidth="120"/>
+
+        <Button fx:id="createVaultButton"  text="%login.new.vault"
+                onAction="#handleCreateVault"
+                prefWidth="140"/>
+        <!-- LANGUAGE SWITCH -->
+        <HBox alignment="CENTER" spacing="12">
+
+
+        </HBox>
+        <Button fx:id="togglePasswordGenerator"
+                onAction="#handleOpenPasswordGenerator" styleClass="small-button">
+            <graphic>
+                <FontAwesomeIconView fx:id="genPassword" glyphName="MAGIC" glyphSize="16"/>
+            </graphic>
+        </Button>
+
+
+    </HBox>
+
+
+
+    <Label fx:id="errorLabel"
+           style="-fx-font-size: 11;-fx-text-fill: #ff0000;"/>
+
+    <HBox spacing="5" alignment="BOTTOM_RIGHT" >
+        <Label text="%login.lang.label" fx:id="languageLabel"
+               style="-fx-text-fill: #cfcfcf; -fx-font-size: 12;"/>
+
+
+        <Button fx:id="btnLangIT"
+                text="IT"
+                styleClass="lang-btn"/>
+
+        <Button fx:id="btnLangEN"
+                text="EN"
+                styleClass="lang-btn"/>
+
+
+    </HBox>
+
+    <HBox spacing="5" alignment="BOTTOM_LEFT">
+        <Label fx:id="updateLicenseLabel"
+               text="Update license"
+               style="-fx-text-fill: #3574F0; -fx-underline: true; -fx-cursor: hand; -fx-font-size: 12;"/>
+    </HBox>
+</VBox>

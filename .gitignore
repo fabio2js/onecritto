@@ -1,0 +1,145 @@
+##############################
+# Build / Maven
+##############################
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+
+##############################
+# Java / JVM
+##############################
+*.class
+*.log
+*.ctxt
+hs_err_pid*
+replay_pid*
+
+##############################
+# JavaFX
+##############################
+*.fxml~            # file temp editor
+*.css~             # temp css
+
+##############################
+# IntelliJ IDEA
+##############################
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+##############################
+# VSCode
+##############################
+.vscode/
+.settings/
+.project
+
+##############################
+# OS Files
+##############################
+.DS_Store
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+##############################
+# Safebox vault files (NON COMMETTERE MAI)
+##############################
+# la directory che contiene safebox.vault e files/
+vaults/
+vault/
+**/files/
+**/*.enc
+**/*.sbx
+
+# backup esportati
+*.sbx
+
+##############################
+# Temp / cache / working dirs
+##############################
+tmp/
+temp/
+*.tmp
+*.bak
+*.swp
+*.swo
+
+##############################
+# Local environment keys (NON condividere)
+##############################
+*.key
+*.pem
+*.der
+
+##############################
+# Distribution / packaging
+##############################
+jp-dist/
+jp-input/
+java-dist/
+jre-onecritto/
+jre-onecritto-BACKUP/
+jre-onecritto-OLD/
+fxlib/
+
+##############################
+# Code signing
+##############################
+create_code_signing_cert.ps1
+OneCritto_CodeSigning.cer
+
+##############################
+# Test files
+##############################
+TestArgon2.java
+TestArgon2.class
+
+##############################
+# Debug launchers
+##############################
+OneCritto_debug.bat
+generaInstaller.bat
+build_onecritto.bat
+build_java_dist.bat
+##############################
+# Misc binaries/logs at root
+##############################
+*.log
+HWID.txt
+*.keystore
+*.jks
+
+##############################
+# Logs Safebox (se abilitati)
+##############################
+logs/
+*.log
+
+##############################
+# Packaging (exe/pkg dmg)
+##############################
+*.exe
+*.msi
+*.dmg
+*.pkg
+*.deb
+*.rpm
+jpackage/
+/jre-onecritto/
+/jp-input/
+/jp-dist/
+/fxlib/
+/.mvn/
+/mvnw
+/mvnw.cmd
+/jar
+/eulaEN.txt
+/HWID.txt

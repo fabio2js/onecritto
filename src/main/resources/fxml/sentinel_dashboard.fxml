@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import de.jensd.fx.glyphs.fontawesome.FontAwesomeIconView?>
+
+<VBox spacing="15" xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.onecritto.ui.SentinelDashboardController"
+      styleClass="background-surface"
+      style="-fx-padding: 20;">
+
+    <!-- HEADER -->
+    <HBox spacing="10" alignment="CENTER_LEFT">
+        <FontAwesomeIconView glyphName="SHIELD" glyphSize="24" style="-fx-fill: #3574F0;"/>
+        <Label text="%sentinel.dashboard.title"
+               style="-fx-font-size: 20px; -fx-font-weight: bold;"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Label fx:id="healthScoreLabel"
+               style="-fx-font-size: 28px; -fx-font-weight: bold;"/>
+    </HBox>
+
+    <Separator/>
+
+    <!-- HEALTH BAR -->
+    <VBox spacing="5">
+        <Label text="%sentinel.health.label" style="-fx-font-weight: bold;"/>
+        <ProgressBar fx:id="healthBar" prefWidth="600" prefHeight="20" progress="0"/>
+        <Label fx:id="healthDescription" styleClass="stats-label"/>
+    </VBox>
+
+    <!-- SUMMARY COUNTERS -->
+    <HBox spacing="20" alignment="CENTER_LEFT" style="-fx-padding: 10 0 0 0;">
+        <VBox alignment="CENTER" spacing="2" styleClass="sentinel-stat-box">
+            <Label fx:id="criticalLabel" style="-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #e74c3c;"/>
+            <Label text="%sentinel.stat.critical" style="-fx-font-size: 11px;"/>
+        </VBox>
+        <VBox alignment="CENTER" spacing="2" styleClass="sentinel-stat-box">
+            <Label fx:id="weakLabel" style="-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #e67e22;"/>
+            <Label text="%sentinel.stat.weak" style="-fx-font-size: 11px;"/>
+        </VBox>
+        <VBox alignment="CENTER" spacing="2" styleClass="sentinel-stat-box">
+            <Label fx:id="fairLabel" style="-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #f1c40f;"/>
+            <Label text="%sentinel.stat.fair" style="-fx-font-size: 11px;"/>
+        </VBox>
+        <VBox alignment="CENTER" spacing="2" styleClass="sentinel-stat-box">
+            <Label fx:id="goodLabel" style="-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #27ae60;"/>
+            <Label text="%sentinel.stat.good" style="-fx-font-size: 11px;"/>
+        </VBox>
+        <VBox alignment="CENTER" spacing="2" styleClass="sentinel-stat-box">
+            <Label fx:id="strongLabel" style="-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #2ecc71;"/>
+            <Label text="%sentinel.stat.strong" style="-fx-font-size: 11px;"/>
+        </VBox>
+        <VBox alignment="CENTER" spacing="2" styleClass="sentinel-stat-box">
+            <Label fx:id="duplicateLabel" style="-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #9b59b6;"/>
+            <Label text="%sentinel.stat.duplicate" style="-fx-font-size: 11px;"/>
+        </VBox>
+    </HBox>
+
+    <Separator/>
+
+    <!-- ROTATION PLAN TABLE -->
+    <VBox spacing="10" VBox.vgrow="ALWAYS">
+        <padding><Insets top="15" bottom="35"/></padding>
+        <Label text="%sentinel.rotation.title" style="-fx-font-weight: bold; -fx-font-size: 14px;"/>
+        <TableView fx:id="rotationTable" VBox.vgrow="ALWAYS">
+            <columns>
+                <TableColumn fx:id="rotPriorityCol" text="%sentinel.rotation.col.priority" minWidth="60" maxWidth="100"/>
+                <TableColumn fx:id="rotTitleCol" text="%sentinel.rotation.col.title" minWidth="150"/>
+                <TableColumn fx:id="rotReasonCol" text="%sentinel.rotation.col.reason" minWidth="200"/>
+            </columns>
+        </TableView>
+    </VBox>
+
+    <!-- CLOSE BUTTON -->
+    <HBox alignment="CENTER_RIGHT" style="-fx-padding: 10 0 0 0;">
+        <Button text="%close" onAction="#handleClose">
+            <graphic><FontAwesomeIconView glyphName="TIMES" glyphSize="14"/></graphic>
+        </Button>
+    </HBox>
+
+</VBox>

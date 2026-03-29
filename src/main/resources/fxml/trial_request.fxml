@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<BorderPane xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml"
+            fx:controller="com.onecritto.ui.TrialRequestController"
+            style="-fx-background-color: #0d0f23;">
+
+    <center>
+        <VBox alignment="CENTER" spacing="20">
+            <VBox alignment="CENTER" spacing="10">
+                <Label text="Trial Activation"
+                       style="-fx-font-size: 28; -fx-text-fill: white; -fx-font-weight: bold;"/>
+                <Label text="Your trial license is required to continue."
+                       style="-fx-font-size: 14; -fx-text-fill: #bbbbbb;"/>
+            </VBox>
+
+            <VBox spacing="6" maxWidth="600" minWidth="600">
+                <Label text="Hardware ID" style="-fx-text-fill: white;"/>
+
+                <TextField fx:id="hwidField"
+                           editable="false"
+                           style="-fx-background-color: #1a1c33; -fx-text-fill: #e6e6e6;
+                                  -fx-background-radius: 6; -fx-font-size: 14;
+                                  -fx-border-color: #3574F0; -fx-border-radius: 6;"/>
+            </VBox>
+
+            <Button fx:id="copyButton"
+                    text="Copy ID"
+                    style="-fx-background-color: #3574F0; -fx-text-fill: white;
+                           -fx-padding: 10 25; -fx-background-radius: 8; -fx-font-size: 16;
+                           -fx-font-weight: bold;"/>
+
+            <Button fx:id="importButton"
+                    text="%trial.import.license"
+                    style="-fx-background-color: #3574F0; -fx-text-fill: white;
+                           -fx-padding: 10 25; -fx-background-radius: 8; -fx-font-size: 16;
+                           -fx-font-weight: bold;"
+
+            />
+            <Label fx:id="licensePathLabel"
+                   textFill="#bbbbbb"
+                   wrapText="true"
+                   maxWidth="400"
+                   style="-fx-font-size: 11px;" />
+
+            <VBox alignment="CENTER" spacing="8" maxWidth="500">
+                <Label text="How to request your trial:"
+                       style="-fx-font-size: 14; -fx-text-fill: #bbbbbb;"/>
+                <Label text="1. Copy your Hardware ID"
+                       style="-fx-font-size: 14; -fx-text-fill: #bbbbbb;"/>
+                <Label text="2. Request a Trial License on OneCritto.com"
+                       style="-fx-font-size: 14; -fx-text-fill: #bbbbbb;"/>
+                <Label text="3. Activate the received license"
+                       style="-fx-font-size: 14; -fx-text-fill: #bbbbbb;"/>
+            </VBox>
+
+            <Button fx:id="closeButton"
+                    text="Close"
+                    style="-fx-background-color: #444; -fx-text-fill: white;
+                           -fx-padding: 8 20; -fx-background-radius: 8; -fx-font-size: 14;"/>
+        </VBox>
+    </center>
+
+    <padding>
+        <Insets top="30" bottom="30" left="30" right="30"/>
+    </padding>
+
+</BorderPane>
