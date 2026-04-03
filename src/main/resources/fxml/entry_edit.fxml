@@ -27,6 +27,14 @@
                    VBox.vgrow="NEVER"/>
     </VBox>
 
+    <VBox spacing="4">
+        <Label text="%entry.field.url"
+               VBox.vgrow="NEVER"/>
+        <TextField fx:id="urlField"
+                   promptText="%entry.field.url.placeholder"
+                   VBox.vgrow="NEVER"/>
+    </VBox>
+
     <SecureTextField fx:id="usernameField" />
 
     <HBox spacing="5">

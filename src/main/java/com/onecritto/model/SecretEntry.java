@@ -13,6 +13,7 @@ public class SecretEntry {
 
     private String id;
     private String title;
+    private String url;
     private String category;
 
     /** Epoch millis when the entry was first created */

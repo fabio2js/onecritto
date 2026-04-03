@@ -32,6 +32,7 @@ import static com.onecritto.util.UIUtils.showError;
 public class AddEntryController {
 
     @FXML private TextField titleField;
+    @FXML private TextField urlField;
     @FXML private SecureTextField usernameField;
 
     @FXML private SecureTextField passwordField;
@@ -157,6 +158,7 @@ public class AddEntryController {
         entry = new SecretEntry();
         entry.setId(java.util.UUID.randomUUID().toString());
         entry.setTitle(titleField.getText());
+        entry.setUrl(urlField.getText());
         entry.setUsername(usernameField.getValue());
         entry.setPassword(pwd);
         entry.setNotes(notesField.getValue());

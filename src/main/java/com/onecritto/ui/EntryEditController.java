@@ -30,6 +30,7 @@ import java.util.ResourceBundle;
 public class EntryEditController {
 
     @FXML private TextField titleField;
+    @FXML private TextField urlField;
     @FXML private SecureTextField usernameField;
     @FXML private SecureTextArea notesField;
 
@@ -115,6 +116,7 @@ public class EntryEditController {
         );
         categoryBox.getSelectionModel().select(entry.getCategory());
         titleField.setText(entry.getTitle());
+        urlField.setText(entry.getUrl());
         usernameField.setValue(entry.getUsername());
         secretField.setValue(entry.getPassword());
         notesField.setValue(entry.getNotes());
@@ -160,6 +162,7 @@ public class EntryEditController {
         entry.setNotes(notesField.getValue());
         entry.setCategory(categoryBox.getSelectionModel().getSelectedItem());
         entry.setTitle(titleField.getText());
+        entry.setUrl(urlField.getText());
 
         // Aggiorna passwordChangedAt solo se la password è cambiata (sentinel 90gg)
         if (passwordChanged) {

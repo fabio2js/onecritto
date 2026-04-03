@@ -109,6 +109,8 @@ OneCritto_debug.bat
 generaInstaller.bat
 build_onecritto.bat
 build_java_dist.bat
+CONVENTIONS.md
+.aider*
 ##############################
 # Misc binaries/logs at root
 ##############################
