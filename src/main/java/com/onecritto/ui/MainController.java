@@ -3,6 +3,7 @@ package com.onecritto.ui;
 import com.onecritto.App;
 import com.onecritto.model.SecretEntry;
 import com.onecritto.model.SecretFile;
+import com.onecritto.model.SshConnection;
 import com.onecritto.i18n.I18n;
 import com.onecritto.observer.ProgressObserver;
 import com.onecritto.persistence.CryptoServiceV3;
@@ -157,6 +158,18 @@ public class MainController implements ProgressObserver {
     @FXML private TableColumn<SecretFile, Number> fileAddTimeColumn;
     @FXML private TableColumn<SecretFile, Number> fileLastEditColumn;
 
+    // SSH tab
+    @FXML public Tab tabSsh;
+    @FXML private TableView<SshConnection> sshTable;
+    @FXML private TableColumn<SshConnection, String> sshNameColumn;
+    @FXML private TableColumn<SshConnection, String> sshHostColumn;
+    @FXML private TableColumn<SshConnection, Number> sshPortColumn;
+    @FXML private TableColumn<SshConnection, String> sshUserColumn;
+    @FXML private TableColumn<SshConnection, String> sshKeyColumn;
+    @FXML private TableColumn<SshConnection, String> sshCommandColumn;
+
+    final private ObservableList<SshConnection> fullSshConnections = FXCollections.observableArrayList();
+    private FilteredList<SshConnection> filteredSsh;
 
     @FXML private Label infoLabel;
 
@@ -234,6 +247,7 @@ public class MainController implements ProgressObserver {
         Platform.runLater(() -> {
             fixTableLayout(tableEntries);
             fixTableLayout(fileTable);
+            fixTableLayout(sshTable);
         });
 
         labelPath.setText(
@@ -251,9 +265,39 @@ public class MainController implements ProgressObserver {
         sortedFiles.comparatorProperty().bind(fileTable.comparatorProperty());
         fileTable.setItems(sortedFiles);
 
+// --- LISTE ORDINABILI & FILTRABILI PER SSH ---
+        filteredSsh = new FilteredList<>(fullSshConnections, p -> true);
+        SortedList<SshConnection> sortedSsh = new SortedList<>(filteredSsh);
+        sortedSsh.comparatorProperty().bind(sshTable.comparatorProperty());
+        sshTable.setItems(sortedSsh);
+
+        // SSH table columns
+        sshNameColumn.setCellValueFactory(new PropertyValueFactory<>("name"));
+        sshHostColumn.setCellValueFactory(new PropertyValueFactory<>("host"));
+        sshPortColumn.setCellValueFactory(new PropertyValueFactory<>("port"));
+        sshUserColumn.setCellValueFactory(new PropertyValueFactory<>("username"));
+        sshKeyColumn.setCellValueFactory(new PropertyValueFactory<>("keyFileName"));
+        sshCommandColumn.setCellValueFactory(cd -> {
+            SshConnection c = cd.getValue();
+            return new ReadOnlyStringWrapper(buildSshCommand(c, null));
+        });
+
+// --- DOPPIO CLICK PER APRIRE MODIFICA SSH ---
+        sshTable.setRowFactory(tv -> {
+            TableRow<SshConnection> row = new TableRow<>();
+            row.setOnMouseClicked(event -> {
+                if (event.getClickCount() == 2 && !row.isEmpty()) {
+                    sshTable.getSelectionModel().select(row.getIndex());
+                    handleSshEdit();
+                }
+            });
+            return row;
+        });
+
 // carica i dati dopo avere preparato le liste
         loadTable();
         loadFiles();
+        loadSshConnections();
 
         // Sentinel: run initial analysis
         runSentinelAnalysis();
@@ -797,6 +841,7 @@ public class MainController implements ProgressObserver {
         if (text == null || text.isBlank()) {
             filteredEntries.setPredicate(e -> true);
             filteredFiles.setPredicate(f -> true);
+            filteredSsh.setPredicate(s -> true);
             return;
         }
 
@@ -825,11 +870,19 @@ public class MainController implements ProgressObserver {
                 return matchTitle || matchUser || matchCategory || matchNotes;
             });
 
-        } else { // FILES TAB
+        } else if (tabIndex == 1) { // FILES TAB
 
             filteredFiles.setPredicate(f ->
                     f.getName().toLowerCase().contains(lower) ||
                             f.getContentType().toLowerCase().contains(lower)
+            );
+        } else if (tabIndex == 2) { // SSH TAB
+
+            filteredSsh.setPredicate(s ->
+                    (s.getName() != null && s.getName().toLowerCase().contains(lower)) ||
+                    (s.getHost() != null && s.getHost().toLowerCase().contains(lower)) ||
+                    (s.getUsername() != null && s.getUsername().toLowerCase().contains(lower)) ||
+                    (s.getKeyFileName() != null && s.getKeyFileName().toLowerCase().contains(lower))
             );
         }
     }
@@ -2006,7 +2059,275 @@ public class MainController implements ProgressObserver {
         return Locale.getDefault();
     }
 
-  
+    // ========== SSH CONNECTION MANAGER ==========
+
+    private void loadSshConnections() {
+        List<SshConnection> connections = VaultRepository.VAULT_CONTEXT.getVault().getSshConnections();
+        if (connections == null) {
+            VaultRepository.VAULT_CONTEXT.getVault().setSshConnections(new ArrayList<>());
+            connections = VaultRepository.VAULT_CONTEXT.getVault().getSshConnections();
+        }
+        fullSshConnections.setAll(connections);
+    }
+
+    private String buildSshCommand(SshConnection conn, Path keyPath) {
+        StringBuilder cmd = new StringBuilder("ssh");
+        if (keyPath != null) {
+            cmd.append(" -i \"").append(keyPath.toAbsolutePath()).append("\"");
+        } else if (conn.getKeyFileName() != null) {
+            cmd.append(" -i <").append(conn.getKeyFileName()).append(">");
+        }
+        if (conn.getPort() != 22) {
+            cmd.append(" -p ").append(conn.getPort());
+        }
+        if (conn.getUsername() != null && !conn.getUsername().isBlank()) {
+            cmd.append(" ").append(conn.getUsername()).append("@").append(conn.getHost());
+        } else {
+            cmd.append(" ").append(conn.getHost());
+        }
+        return cmd.toString();
+    }
+
+    @FXML
+    private void handleSshAdd() {
+        try {
+            FXMLLoader loader = new FXMLLoader(
+                    getClass().getResource("/fxml/ssh_connection.fxml"),
+                    I18n.getBundle());
+
+            Stage dialog = new Stage();
+            dialog.setScene(new Scene(loader.load()));
+            dialog.setTitle(I18n.t("ssh.dialog.add.title"));
+
+            dialog.initOwner(sshTable.getScene().getWindow());
+            dialog.setResizable(true);
+            dialog.getScene().getStylesheets().add(
+                    Objects.requireNonNull(App.class.getResource("/css/onecritto-theme.css")).toExternalForm()
+            );
+            dialog.getIcons().add(new Image(
+                    Objects.requireNonNull(getClass().getResourceAsStream("/icons/onecritto_white_key_32x32.png"))
+            ));
+
+            SshConnectionController ctrl = loader.getController();
+            ctrl.setMainController(this);
+
+            dialog.addEventFilter(MouseEvent.ANY, e -> resetInactivityTimer());
+            dialog.addEventFilter(KeyEvent.ANY, e -> resetInactivityTimer());
+            dialog.initModality(Modality.APPLICATION_MODAL);
+            dialog.showAndWait();
+
+            if (ctrl.isSaved()) {
+                VaultRepository.VAULT_CONTEXT.getVault().getSshConnections().add(ctrl.getConnection());
+                runSaveVaultWithProgress();
+                loadSshConnections();
+            }
+
+        } catch (Exception e) {
+            SecureLogger.error(e.getMessage(), e);
+            UIUtils.showError(I18n.t("ssh.error.save"));
+        }
+    }
+
+    @FXML
+    private void handleSshEdit() {
+        SshConnection selected = sshTable.getSelectionModel().getSelectedItem();
+        if (selected == null) return;
+
+        try {
+            FXMLLoader loader = new FXMLLoader(
+                    getClass().getResource("/fxml/ssh_connection.fxml"),
+                    I18n.getBundle());
+
+            Stage dialog = new Stage();
+            dialog.setScene(new Scene(loader.load()));
+            dialog.setTitle(I18n.t("ssh.dialog.edit.title"));
+
+            dialog.initOwner(sshTable.getScene().getWindow());
+            dialog.setResizable(true);
+            dialog.getScene().getStylesheets().add(
+                    Objects.requireNonNull(App.class.getResource("/css/onecritto-theme.css")).toExternalForm()
+            );
+            dialog.getIcons().add(new Image(
+                    Objects.requireNonNull(getClass().getResourceAsStream("/icons/onecritto_white_key_32x32.png"))
+            ));
+
+            SshConnectionController ctrl = loader.getController();
+            ctrl.setMainController(this);
+            ctrl.setConnection(selected);
+
+            dialog.addEventFilter(MouseEvent.ANY, e -> resetInactivityTimer());
+            dialog.addEventFilter(KeyEvent.ANY, e -> resetInactivityTimer());
+            dialog.initModality(Modality.APPLICATION_MODAL);
+            dialog.showAndWait();
+
+            if (ctrl.isSaved()) {
+                runSaveVaultWithProgress();
+                loadSshConnections();
+            }
+
+        } catch (Exception e) {
+            SecureLogger.error(e.getMessage(), e);
+            UIUtils.showError(I18n.t("ssh.error.save"));
+        }
+    }
+
+    @FXML
+    private void handleSshDelete() {
+        SshConnection selected = sshTable.getSelectionModel().getSelectedItem();
+        if (selected == null) return;
+
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION,
+                I18n.t("ssh.delete.confirm"),
+                ButtonType.YES, ButtonType.NO);
+        confirm.setTitle(I18n.t("ssh.delete.title"));
+        confirm.setHeaderText(I18n.t("ssh.delete.header"));
+
+        confirm.showAndWait().ifPresent(btn -> {
+            if (btn == ButtonType.YES) {
+                VaultRepository.VAULT_CONTEXT.getVault().getSshConnections().remove(selected);
+                runSaveVaultWithProgress();
+                loadSshConnections();
+            }
+        });
+    }
+
+    @FXML
+    private void handleSshConnect() {
+        SshConnection selected = sshTable.getSelectionModel().getSelectedItem();
+        if (selected == null) return;
+
+        if (selected.getKeyFileId() == null) {
+            // No key file — open terminal with plain SSH command
+            launchTerminalWithCommand(buildSshCommand(selected, null));
+            return;
+        }
+
+        // Find the SecretFile for the key
+        SecretFile keyFile = null;
+        for (SecretFile sf : VaultRepository.VAULT_CONTEXT.getVault().getFiles()) {
+            if (sf.getId().equals(selected.getKeyFileId())) {
+                keyFile = sf;
+                break;
+            }
+        }
+
+        if (keyFile == null) {
+            UIUtils.showError(I18n.t("ssh.error.key.notfound"));
+            return;
+        }
+
+        if (!acquireVaultLock(I18n.t("main.busy.operation"))) return;
+
+        final SecretFile sf = keyFile;
+        final SshConnection conn = selected;
+
+        Task<Path> task = new Task<>() {
+            @Override
+            protected Path call() throws Exception {
+                Path temp = TempVaultFiles.createTempFileForOpen(sf.getName());
+                SecretKey key = VaultRepository.VAULT_CONTEXT.getKeyEnc();
+
+                try {
+                    decryptBlobToTemp(key, sf, temp, sf.getSize());
+                } catch (org.bouncycastle.crypto.InvalidCipherTextException gcmFail) {
+                    SecureLogger.debug("GCM failed with current key, trying legacy key for SSH key");
+                    @SuppressWarnings("deprecation")
+                    SecretKey legacyKey = CryptoServiceV4.deriveMasterKey(
+                            VaultRepository.VAULT_CONTEXT.getMasterPassword(),
+                            VaultRepository.VAULT_CONTEXT.getSalt()
+                    );
+                    Files.deleteIfExists(temp);
+                    Path retryTemp = TempVaultFiles.createTempFileForOpen(sf.getName());
+                    decryptBlobToTemp(legacyKey, sf, retryTemp, sf.getSize());
+                    Files.move(retryTemp, temp, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                    VaultRepository.VAULT_CONTEXT.setLegacyKeyEnc(legacyKey);
+                }
+
+                // Set restrictive permissions on the key file (ssh requires 600)
+                try {
+                    temp.toFile().setReadable(false, false);
+                    temp.toFile().setReadable(true, true);
+                    temp.toFile().setWritable(false, false);
+                    temp.toFile().setWritable(true, true);
+                } catch (Exception ignored) {}
+
+                return temp;
+            }
+        };
+
+        task.setOnSucceeded(e -> {
+            releaseVaultLock();
+            Path keyPath = task.getValue();
+            String command = buildSshCommand(conn, keyPath);
+            launchTerminalWithCommand(command);
+        });
+
+        task.setOnFailed(e -> {
+            releaseVaultLock();
+            UIUtils.showError(I18n.t("ssh.error.decrypt"));
+            if (task.getException() != null) {
+                SecureLogger.error(task.getException().getMessage(), task.getException());
+            }
+        });
+
+        Thread th = new Thread(task);
+        th.setDaemon(true);
+        th.start();
+    }
+
+    @FXML
+    private void handleSshCopyCommand() {
+        SshConnection selected = sshTable.getSelectionModel().getSelectedItem();
+        if (selected == null) return;
+
+        String command = buildSshCommand(selected, null);
+        javafx.scene.input.Clipboard clipboard = javafx.scene.input.Clipboard.getSystemClipboard();
+        javafx.scene.input.ClipboardContent content = new javafx.scene.input.ClipboardContent();
+        content.putString(command);
+        clipboard.setContent(content);
+        UIUtils.showToast(sshTable, I18n.t("ssh.command.copied"));
+    }
+
+    private void launchTerminalWithCommand(String command) {
+        try {
+            String os = System.getProperty("os.name", "").toLowerCase();
+            ProcessBuilder pb;
+            if (os.contains("win")) {
+                // Windows: open cmd.exe with the SSH command
+                pb = new ProcessBuilder("cmd.exe", "/c", "start", "cmd.exe", "/k", command);
+            } else if (os.contains("mac")) {
+                // macOS: open Terminal.app
+                pb = new ProcessBuilder("osascript", "-e",
+                        "tell application \"Terminal\" to do script \"" + command.replace("\"", "\\\"") + "\"");
+            } else {
+                // Linux: try common terminal emulators
+                String terminal = findLinuxTerminal();
+                if (terminal != null) {
+                    pb = new ProcessBuilder(terminal, "-e", command);
+                } else {
+                    // Fallback: xterm
+                    pb = new ProcessBuilder("xterm", "-e", command);
+                }
+            }
+            pb.start();
+        } catch (Exception e) {
+            SecureLogger.error("Failed to launch terminal: " + e.getMessage(), e);
+            UIUtils.showError(I18n.t("ssh.error.terminal"));
+        }
+    }
+
+    private String findLinuxTerminal() {
+        String[] terminals = {"gnome-terminal", "konsole", "xfce4-terminal", "mate-terminal", "xterm"};
+        for (String t : terminals) {
+            try {
+                Process p = new ProcessBuilder("which", t).start();
+                if (p.waitFor() == 0) {
+                    return t;
+                }
+            } catch (Exception ignored) {}
+        }
+        return null;
+    }
 
    
 }

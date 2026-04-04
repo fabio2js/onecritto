@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import de.jensd.fx.glyphs.fontawesome.FontAwesomeIconView?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.onecritto.ui.SshConnectionController"
+      spacing="12"
+      style="-fx-padding: 20;">
+
+    <VBox spacing="4">
+        <Label text="%ssh.field.name"/>
+        <TextField fx:id="nameField" promptText="%ssh.field.name.placeholder"/>
+    </VBox>
+
+    <VBox spacing="4">
+        <Label text="%ssh.field.host"/>
+        <TextField fx:id="hostField" promptText="%ssh.field.host.placeholder"/>
+    </VBox>
+
+    <HBox spacing="12">
+        <VBox spacing="4" HBox.hgrow="ALWAYS">
+            <Label text="%ssh.field.username"/>
+            <TextField fx:id="usernameField" promptText="%ssh.field.username.placeholder"/>
+        </VBox>
+        <VBox spacing="4" prefWidth="100">
+            <Label text="%ssh.field.port"/>
+            <TextField fx:id="portField" text="22" promptText="22"/>
+        </VBox>
+    </HBox>
+
+    <VBox spacing="4">
+        <Label text="%ssh.field.key"/>
+        <ComboBox fx:id="keyFileCombo" maxWidth="Infinity"/>
+    </VBox>
+
+    <VBox spacing="4">
+        <Label text="%ssh.field.preview" styleClass="helper-text"/>
+        <Label fx:id="commandPreview" styleClass="stats-label"
+               style="-fx-font-family: 'Consolas', 'Courier New', monospace; -fx-font-size: 13;"/>
+    </VBox>
+
+    <HBox spacing="12" alignment="CENTER_RIGHT" style="-fx-padding: 10 0 0 0;">
+        <Button text="%save" onAction="#handleSave">
+            <graphic><FontAwesomeIconView glyphName="CHECK" glyphSize="14"/></graphic>
+        </Button>
+        <Button text="%cancel" onAction="#handleCancel">
+            <graphic><FontAwesomeIconView glyphName="TIMES" glyphSize="14"/></graphic>
+        </Button>
+    </HBox>
+
+</VBox>

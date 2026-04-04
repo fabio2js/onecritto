@@ -119,6 +119,10 @@ HWID.txt
 *.keystore
 *.jks
 github-ruleset-owner-only.json
+.rag_index
+*.py
+
+
 
 ##############################
 # Logs Safebox (se abilitati)

@@ -172,6 +172,11 @@ public class VaultRepository extends ProgressObservable {
                 }
             }
 
+            // Restore SSH connections
+            if (meta.getSshConnections() != null) {
+                v.setSshConnections(new java.util.ArrayList<>(meta.getSshConnections()));
+            }
+
             VAULT_CONTEXT.setVault(v);
             notifyProgress(1.0);
             SecureLogger.debug("loadVaultV4: load OK");
@@ -288,7 +293,8 @@ public class VaultRepository extends ProgressObservable {
             }
             metadata.setFiles(fileMetas);
 
-
+            // SSH connections
+            metadata.setSshConnections(vault.getSshConnections());
 
 
 

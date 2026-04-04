@@ -11,6 +11,7 @@ public class Vault {
 
     private List<SecretEntry> entries = new ArrayList<>();
     private List<SecretFile> files = new ArrayList<>();
+    private List<SshConnection> sshConnections = new ArrayList<>();
     private byte[] mac;
     private byte[] salt;
 

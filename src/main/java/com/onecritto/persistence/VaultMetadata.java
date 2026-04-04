@@ -1,6 +1,7 @@
 package com.onecritto.persistence;
 
 import com.onecritto.model.SecretEntry;
+import com.onecritto.model.SshConnection;
 import lombok.Data;
 
 import java.util.List;
@@ -20,5 +21,7 @@ public class VaultMetadata {
     /** Lista dei file allegati */
     private List<FileMeta> files;
 
+    /** Lista delle connessioni SSH salvate */
+    private List<SshConnection> sshConnections;
 
 }

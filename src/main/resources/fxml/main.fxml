@@ -145,6 +145,46 @@
                             </content>
                         </Tab>
 
+                        <!-- TAB SSH -->
+                        <Tab text="%main.tab.ssh" fx:id="tabSsh">
+                            <content>
+                                <VBox spacing="12" VBox.vgrow="ALWAYS">
+
+                                    <TableView fx:id="sshTable">
+                                        <columns>
+                                            <TableColumn fx:id="sshNameColumn" text="%ssh.col.name" prefWidth="160"/>
+                                            <TableColumn fx:id="sshHostColumn" text="%ssh.col.host" prefWidth="180"/>
+                                            <TableColumn fx:id="sshPortColumn" text="%ssh.col.port" prefWidth="60"/>
+                                            <TableColumn fx:id="sshUserColumn" text="%ssh.col.username" prefWidth="120"/>
+                                            <TableColumn fx:id="sshKeyColumn" text="%ssh.col.key" prefWidth="160"/>
+                                            <TableColumn fx:id="sshCommandColumn" text="%ssh.col.command" prefWidth="160"/>
+                                        </columns>
+                                    </TableView>
+
+                                    <HBox spacing="12" style="-fx-padding:10 10 10 10;">
+                                        <Button text="%ssh.btn.connect" onAction="#handleSshConnect">
+                                            <graphic><FontAwesomeIconView glyphName="TERMINAL" glyphSize="14"/></graphic>
+                                        </Button>
+                                        <Button text="%ssh.btn.add" onAction="#handleSshAdd">
+                                            <graphic><FontAwesomeIconView glyphName="PLUS" glyphSize="14"/></graphic>
+                                        </Button>
+                                        <Button text="%ssh.btn.edit" onAction="#handleSshEdit">
+                                            <graphic><FontAwesomeIconView glyphName="EDIT" glyphSize="14"/></graphic>
+                                        </Button>
+                                        <Button text="%ssh.btn.delete" onAction="#handleSshDelete">
+                                            <graphic><FontAwesomeIconView glyphName="TRASH" glyphSize="14"/></graphic>
+                                        </Button>
+
+                                        <Region HBox.hgrow="ALWAYS"/>
+
+                                        <Button text="%ssh.btn.copy" onAction="#handleSshCopyCommand">
+                                            <graphic><FontAwesomeIconView glyphName="COPY" glyphSize="14"/></graphic>
+                                        </Button>
+                                    </HBox>
+                                </VBox>
+                            </content>
+                        </Tab>
+
                     </tabs>
                 </TabPane>
 
