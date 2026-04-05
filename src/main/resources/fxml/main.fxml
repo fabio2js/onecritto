@@ -22,7 +22,7 @@
                 <!-- Header già esistente -->
                 <HBox spacing="15" alignment="CENTER_LEFT" styleClass="header-bar">
                     <ImageView fitHeight="38" preserveRatio="true" smooth="true">
-                        <image><Image url="@/icons/logo_original.png" requestedHeight="76" preserveRatio="true" smooth="true"/></image>
+                        <image><Image url="@/icons/logoOneCritto.png" requestedHeight="76" preserveRatio="true" smooth="true"/></image>
                     </ImageView>
 
                     <Region HBox.hgrow="ALWAYS"/>
@@ -139,6 +139,12 @@
                                         </Button>
                                         <Button text="%main.btn.deletefile" fx:id="btnElimina" onAction="#handleDeleteFile">
                                             <graphic><FontAwesomeIconView glyphName="TRASH" glyphSize="14"/></graphic>
+                                        </Button>
+
+                                        <Region HBox.hgrow="ALWAYS"/>
+
+                                        <Button text="%main.btn.wipetemp" onAction="#handleWipeTemp">
+                                            <graphic><FontAwesomeIconView glyphName="ERASER" glyphSize="14"/></graphic>
                                         </Button>
                                     </HBox>
                                 </VBox>

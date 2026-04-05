@@ -523,6 +523,7 @@ public class MainController implements ProgressObserver {
 
         fixTabBorder(tabPassowrd);
         fixTabBorder(tabFiles);
+        fixTabBorder(tabSsh);
         // --- COLONNA FORZA PASSWORD (ordinabile con score 0–100, -1 = vuoto) ---
         strengthColumn.setCellValueFactory(cellData -> {
             SecretEntry entry = cellData.getValue();
@@ -1807,6 +1808,12 @@ public class MainController implements ProgressObserver {
         });
     }
 
+    @FXML
+    private void handleWipeTemp() {
+        TempVaultFiles.cleanupTempDirSecure();
+        UIUtils.showToast(fileTable, I18n.t("main.toast.wipetemp.done"));
+    }
+
 
     public void switchLanguage(Locale locale) {
 
@@ -2181,6 +2188,11 @@ public class MainController implements ProgressObserver {
                 ButtonType.YES, ButtonType.NO);
         confirm.setTitle(I18n.t("ssh.delete.title"));
         confirm.setHeaderText(I18n.t("ssh.delete.header"));
+        confirm.initOwner(sshTable.getScene().getWindow());
+        confirm.getDialogPane().setMinWidth(650);
+        confirm.getDialogPane().getStylesheets().add(
+                Objects.requireNonNull(App.class.getResource("/css/onecritto-theme.css")).toExternalForm()
+        );
 
         confirm.showAndWait().ifPresent(btn -> {
             if (btn == ButtonType.YES) {

@@ -21,7 +21,7 @@
 
     <ImageView fitHeight="45" preserveRatio="true" smooth="true">
         <image>
-            <Image url="@/icons/logo_original.png" requestedHeight="90" preserveRatio="true" smooth="true"/>
+            <Image url="@/icons/logoOneCritto.png" requestedHeight="90" preserveRatio="true" smooth="true"/>
         </image>
     </ImageView>
 
