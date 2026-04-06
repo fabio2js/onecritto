@@ -8,7 +8,7 @@
 
 [OneCritto](https://onecritto.com) is a desktop password manager built with JavaFX 21 that keeps your credentials and sensitive files encrypted on your device. No cloud, no accounts, no data leaves your machine.
 
-[User Guide](https://onecritto.com/guide.html)
+[Download](https://onecritto.com/download.html) · [User Guide](https://onecritto.com/guide.html)
 
 ---
 
