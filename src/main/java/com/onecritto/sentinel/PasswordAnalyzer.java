@@ -5,6 +5,10 @@ import com.onecritto.model.SecretEntry;
 import com.onecritto.sentinel.model.PasswordScore;
 import com.onecritto.sentinel.model.PasswordScore.RiskLevel;
 
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
@@ -51,6 +55,18 @@ public class PasswordAnalyzer {
             "!@#$%", "!@#$%^", "!@#$%^&", "!@#$%^&*"
     };
 
+    // ---- Common bigrams across European languages (EN, IT, ES, PT, FR, DE) ----
+    private static final Set<String> LANGUAGE_BIGRAMS = Set.of(
+            "en", "er", "an", "re", "on", "in", "es", "de", "te", "al",
+            "ar", "or", "at", "ti", "le", "se", "ne", "la", "co", "ta",
+            "st", "el", "no", "to", "ra", "io", "nd", "ch", "it", "is",
+            "me", "ni", "si", "li", "do", "pe", "ma", "ca", "na", "ri",
+            "lo", "il", "ha", "ng", "ou", "nt", "ad", "he", "th", "ge",
+            "ei", "be", "un", "ie", "os", "as", "em", "da", "ce", "mi"
+    );
+    /** Bits per char for natural European language text (Shannon estimate). */
+    private static final double NATURAL_LANG_BPC = 1.5;
+
     // ---- Leet-speak substitutions ----
     private static final Map<Character, Character> LEET_MAP = Map.ofEntries(
             Map.entry('@', 'a'), Map.entry('4', 'a'),
@@ -63,6 +79,44 @@ public class PasswordAnalyzer {
             Map.entry('7', 't'), Map.entry('+', 't'),
             Map.entry('2', 'z')
     );
+
+    // ---- Multilingual word dictionaries (loaded from resource files) ----
+    private static final Set<String> DICTIONARY_WORDS;
+    private static final String[] DICT_FILES = {
+        "/sentinel/english_words.txt",
+        "/sentinel/italian_words.txt",
+        "/sentinel/portuguese_words.txt",
+        "/sentinel/spanish_words.txt",
+        "/sentinel/french_words.txt",
+        "/sentinel/german_words.txt"
+    };
+    static {
+        Set<String> words = new HashSet<>();
+        for (String dictFile : DICT_FILES) {
+            try (InputStream is = PasswordAnalyzer.class.getResourceAsStream(dictFile)) {
+                if (is != null) {
+                    try (BufferedReader br = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
+                        String line;
+                        while ((line = br.readLine()) != null) {
+                            String w = line.trim().toLowerCase(Locale.ROOT);
+                            if (w.length() >= 4 && !w.startsWith("#")) words.add(w);
+                        }
+                    }
+                }
+            } catch (Exception ignored) { /* fallback: skip this file */ }
+        }
+        DICTIONARY_WORDS = Collections.unmodifiableSet(words);
+    }
+
+    /** All known words (common passwords + multilingual dictionaries) sorted by length descending for greedy matching. */
+    private static final List<String> DICT_BY_LENGTH;
+    static {
+        Set<String> merged = new HashSet<>(COMMON_PASSWORDS);
+        merged.addAll(DICTIONARY_WORDS);
+        List<String> list = new ArrayList<>(merged);
+        list.sort((a, b) -> b.length() - a.length());
+        DICT_BY_LENGTH = Collections.unmodifiableList(list);
+    }
 
     /**
      * Scores all entries in the vault.
@@ -191,24 +245,286 @@ public class PasswordAnalyzer {
         return score;
     }
 
+    /**
+     * Compute entropy using pattern-aware tokenization.
+     * Detects dictionary words, keyboard patterns, repetitions, and sequences
+     * to give realistic entropy values (similar to zxcvbn/KeePass approach).
+     */
     static double computeEntropy(char[] pwd) {
-        int charsetSize = 0;
+        if (pwd == null || pwd.length == 0) return 0;
+
+        String original = new String(pwd);
+        String lower = original.toLowerCase(Locale.ROOT);
+        String deleet = deLeet(lower);
+
+        // --- Full-password common/leet match ---
+        if (COMMON_PASSWORDS.contains(lower)) {
+            double bits = log2(COMMON_PASSWORDS.size());
+            for (char c : pwd) {
+                if (Character.isUpperCase(c)) { bits += 1.0; break; }
+            }
+            return bits;
+        }
+        if (!deleet.equals(lower) && COMMON_PASSWORDS.contains(deleet)) {
+            return log2(COMMON_PASSWORDS.size()) + 2.0;
+        }
+
+        // --- Token-based entropy estimation ---
+        boolean[] consumed = new boolean[pwd.length];
+        double entropy = 0.0;
+
+        // 1. Dictionary substrings (longest first, >=4 chars)
+        entropy += consumeDictionary(lower, deleet, consumed);
+
+        // 2. Keyboard walk patterns
+        entropy += consumeKeyboardPatterns(lower, consumed);
+
+        // 3. Repetition runs (3+ identical chars)
+        entropy += consumeRepetitions(lower, consumed);
+
+        // 4. Sequential runs (3+ ascending/descending)
+        entropy += consumeSequences(lower, consumed);
+
+        // 5. Remaining truly random characters
+        entropy += remainingEntropy(pwd, consumed);
+
+        // 6. Predictable structure penalty
+        entropy -= structurePenalty(pwd, consumed);
+
+        return Math.max(1.0, entropy);
+    }
+
+    // ---- Entropy helper methods ----
+
+    private static double log2(double x) {
+        return Math.log(x) / Math.log(2);
+    }
+
+    /** Consume dictionary word substrings (greedy, longest first). */
+    private static double consumeDictionary(String lower, String deleet, boolean[] consumed) {
+        double bits = 0;
+        for (String word : DICT_BY_LENGTH) {
+            if (word.length() < 4) continue;
+            bits += matchWordInText(lower, word, consumed);
+            if (!deleet.equals(lower)) {
+                bits += matchWordInText(deleet, word, consumed);
+            }
+        }
+        return bits;
+    }
+
+    private static double matchWordInText(String text, String word, boolean[] consumed) {
+        double bits = 0;
+        int idx = text.indexOf(word);
+        while (idx >= 0 && idx + word.length() <= consumed.length) {
+            boolean overlap = false;
+            for (int i = idx; i < idx + word.length(); i++) {
+                if (consumed[i]) { overlap = true; break; }
+            }
+            if (!overlap) {
+                for (int i = idx; i < idx + word.length(); i++) consumed[i] = true;
+                // Common password = smaller pool (easier to guess), English word = larger pool
+                double pool = COMMON_PASSWORDS.contains(word) ? COMMON_PASSWORDS.size() : DICT_BY_LENGTH.size();
+                bits += log2(pool);
+            }
+            idx = text.indexOf(word, idx + 1);
+        }
+        return bits;
+    }
+
+    /** Consume keyboard walk patterns (longest first). */
+    private static double consumeKeyboardPatterns(String lower, boolean[] consumed) {
+        double bits = 0;
+        String[] sorted = KEYBOARD_PATTERNS.clone();
+        Arrays.sort(sorted, (a, b) -> b.length() - a.length());
+        for (String pat : sorted) {
+            int idx = lower.indexOf(pat);
+            while (idx >= 0 && idx + pat.length() <= consumed.length) {
+                boolean overlap = false;
+                for (int i = idx; i < idx + pat.length(); i++) {
+                    if (consumed[i]) { overlap = true; break; }
+                }
+                if (!overlap) {
+                    for (int i = idx; i < idx + pat.length(); i++) consumed[i] = true;
+                    bits += log2(KEYBOARD_PATTERNS.length * 2.0);
+                }
+                idx = lower.indexOf(pat, idx + 1);
+            }
+        }
+        return bits;
+    }
+
+    /** Consume runs of 3+ identical characters. */
+    private static double consumeRepetitions(String lower, boolean[] consumed) {
+        double bits = 0;
+        int i = 0;
+        while (i < lower.length()) {
+            if (consumed[i]) { i++; continue; }
+            char c = lower.charAt(i);
+            int runEnd = i + 1;
+            while (runEnd < lower.length() && !consumed[runEnd] && lower.charAt(runEnd) == c) runEnd++;
+            int runLen = runEnd - i;
+            if (runLen >= 3) {
+                for (int j = i; j < runEnd; j++) consumed[j] = true;
+                bits += bitsForChar(c) + log2(runLen);
+                i = runEnd;
+            } else {
+                i++;
+            }
+        }
+        return bits;
+    }
+
+    /** Consume runs of 3+ sequential characters (ascending or descending). */
+    private static double consumeSequences(String lower, boolean[] consumed) {
+        double bits = 0;
+        int i = 0;
+        while (i < lower.length() - 2) {
+            if (consumed[i] || consumed[i + 1]) { i++; continue; }
+            char a = lower.charAt(i);
+            char b = lower.charAt(i + 1);
+            if (!sameCharClass(a, b)) { i++; continue; }
+            int dir = b - a;
+            if (dir != 1 && dir != -1) { i++; continue; }
+            int seqEnd = i + 2;
+            while (seqEnd < lower.length() && !consumed[seqEnd]
+                    && sameCharClass(lower.charAt(seqEnd), lower.charAt(seqEnd - 1))
+                    && (lower.charAt(seqEnd) - lower.charAt(seqEnd - 1)) == dir) {
+                seqEnd++;
+            }
+            int seqLen = seqEnd - i;
+            if (seqLen >= 3) {
+                for (int j = i; j < seqEnd; j++) consumed[j] = true;
+                int pool = Character.isDigit(a) ? 10 : 26;
+                bits += log2(pool) + 1 + log2(seqLen);
+                i = seqEnd;
+            } else {
+                i++;
+            }
+        }
+        return bits;
+    }
+
+    private static boolean sameCharClass(char a, char b) {
+        return (Character.isLetter(a) && Character.isLetter(b))
+                || (Character.isDigit(a) && Character.isDigit(b));
+    }
+
+    /**
+     * Entropy for remaining unconsumed characters.
+     * Uses language bigram analysis to detect natural-language-like text
+     * and character repetition penalty for repeated characters.
+     */
+    private static double remainingEntropy(char[] pwd, boolean[] consumed) {
+        // Collect unconsumed characters
+        List<Character> chars = new ArrayList<>();
+        StringBuilder lowerBuf = new StringBuilder();
         boolean hasLower = false, hasUpper = false, hasDigit = false, hasSymbol = false;
-        for (char c : pwd) {
+        for (int i = 0; i < pwd.length; i++) {
+            if (consumed[i]) continue;
+            chars.add(pwd[i]);
+            lowerBuf.append(Character.toLowerCase(pwd[i]));
+            char c = pwd[i];
             if (Character.isLowerCase(c)) hasLower = true;
             else if (Character.isUpperCase(c)) hasUpper = true;
             else if (Character.isDigit(c)) hasDigit = true;
             else hasSymbol = true;
         }
-        if (hasLower) charsetSize += 26;
-        if (hasUpper) charsetSize += 26;
-        if (hasDigit) charsetSize += 10;
-        if (hasSymbol) charsetSize += 33;
+        int count = chars.size();
+        if (count == 0) return 0;
+        int charsetSize = (hasLower ? 26 : 0) + (hasUpper ? 26 : 0)
+                + (hasDigit ? 10 : 0) + (hasSymbol ? 33 : 0);
         if (charsetSize == 0) return 0;
-        return pwd.length * (Math.log(charsetSize) / Math.log(2));
+        double fullBpc = log2(charsetSize);
+
+        // Language bigram analysis: measure how "language-like" the remaining text is
+        String lowerStr = lowerBuf.toString();
+        double languageRatio = 0;
+        if (lowerStr.length() >= 2) {
+            int bigramCount = 0;
+            int langHits = 0;
+            for (int i = 0; i < lowerStr.length() - 1; i++) {
+                char a = lowerStr.charAt(i);
+                char b = lowerStr.charAt(i + 1);
+                if (Character.isLetter(a) && Character.isLetter(b)) {
+                    bigramCount++;
+                    if (LANGUAGE_BIGRAMS.contains("" + a + b)) langHits++;
+                }
+            }
+            if (bigramCount > 0) languageRatio = (double) langHits / bigramCount;
+        }
+
+        // Interpolate per-char entropy: full charset ↔ natural language
+        double effectiveBpc = fullBpc * (1.0 - languageRatio) + NATURAL_LANG_BPC * languageRatio;
+
+        // Character repetition penalty: first occurrence gets effectiveBpc,
+        // repeated chars get min(effectiveBpc, log2(uniquesSoFar))
+        Set<Character> seen = new HashSet<>();
+        double bits = 0;
+        for (char c : chars) {
+            if (seen.add(c)) {
+                bits += effectiveBpc;
+            } else {
+                bits += Math.min(effectiveBpc, log2(Math.max(2, seen.size())));
+            }
+        }
+        return bits;
     }
 
-    private String deLeet(String s) {
+    /** Bits of entropy for a single character based on its class. */
+    private static double bitsForChar(char c) {
+        if (Character.isLowerCase(c)) return log2(26);
+        if (Character.isUpperCase(c)) return log2(26);
+        if (Character.isDigit(c))     return log2(10);
+        return log2(33);
+    }
+
+    /** Penalty for predictable password structure. */
+    private static double structurePenalty(char[] pwd, boolean[] consumed) {
+        double penalty = 0;
+        // Only first letter uppercase => ~1 bit instead of full ~4.7 bits
+        if (pwd.length > 1 && Character.isUpperCase(pwd[0]) && !consumed[0]) {
+            boolean onlyFirstUpper = true;
+            for (int i = 1; i < pwd.length; i++) {
+                if (!consumed[i] && Character.isUpperCase(pwd[i])) {
+                    onlyFirstUpper = false;
+                    break;
+                }
+            }
+            if (onlyFirstUpper) {
+                penalty += log2(26) - 1.0;
+            }
+        }
+        // All digits at end => predictable positioning
+        int trailingDigits = 0;
+        for (int i = pwd.length - 1; i >= 0; i--) {
+            if (!consumed[i] && Character.isDigit(pwd[i])) trailingDigits++;
+            else if (!consumed[i]) break;
+        }
+        int totalDigits = 0;
+        for (int i = 0; i < pwd.length; i++) {
+            if (!consumed[i] && Character.isDigit(pwd[i])) totalDigits++;
+        }
+        if (trailingDigits > 0 && trailingDigits == totalDigits && trailingDigits <= 4) {
+            penalty += trailingDigits * 1.5;
+        }
+        // All symbols at end => predictable positioning
+        int trailingSymbols = 0;
+        for (int i = pwd.length - 1; i >= 0; i--) {
+            if (!consumed[i] && !Character.isLetterOrDigit(pwd[i])) trailingSymbols++;
+            else if (!consumed[i]) break;
+        }
+        int totalSymbols = 0;
+        for (int i = 0; i < pwd.length; i++) {
+            if (!consumed[i] && !Character.isLetterOrDigit(pwd[i])) totalSymbols++;
+        }
+        if (trailingSymbols > 0 && trailingSymbols == totalSymbols && trailingSymbols <= 3) {
+            penalty += trailingSymbols * 1.5;
+        }
+        return penalty;
+    }
+
+    private static String deLeet(String s) {
         StringBuilder sb = new StringBuilder(s.length());
         for (int i = 0; i < s.length(); i++) {
             char c = s.charAt(i);
