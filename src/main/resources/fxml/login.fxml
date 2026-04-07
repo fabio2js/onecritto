@@ -13,7 +13,8 @@
       fx:controller="com.onecritto.ui.LoginController"
       alignment="CENTER"
       fx:id="rootContainer"
-      spacing="15"    >
+      spacing="15"
+      minHeight="520" prefHeight="520"    >
 
     <padding>
         <Insets top="30" right="40" bottom="30" left="40"/>
@@ -54,7 +55,7 @@
     </VBox>
 
     <ProgressBar fx:id="loginProgressBar"
-                 managed="false"
+                 visible="false"
                  progress="0"
                  maxWidth="300"
                  minHeight="12"
@@ -63,7 +64,7 @@
                  VBox.vgrow="NEVER"/>
 
     <Label fx:id="loginProgressLabel"
-           managed="false"
+           visible="false"
     />
 
 

@@ -1,6 +1,7 @@
 package com.onecritto.ui;
 
 import com.onecritto.App;
+import com.onecritto.importer.ImportOrchestrator;
 import com.onecritto.model.SecretEntry;
 import com.onecritto.model.SecretFile;
 import com.onecritto.model.SshConnection;
@@ -1058,6 +1059,76 @@ public class MainController implements ProgressObserver {
             SecureLogger.error(e.getMessage(),e);
             UIUtils.showError(I18n.t("main.error.save.entry"));
 
+        }
+    }
+
+    @FXML
+    private void handleImport() {
+        try {
+            FileChooser chooser = new FileChooser();
+            chooser.setTitle(I18n.t("import.chooser.title"));
+            chooser.getExtensionFilters().addAll(
+                    new FileChooser.ExtensionFilter(I18n.t("import.filter.all"), "*.csv"),
+                    new FileChooser.ExtensionFilter("CSV", "*.csv")
+            );
+
+            java.io.File selectedFile = chooser.showOpenDialog(tableEntries.getScene().getWindow());
+            if (selectedFile == null) return;
+
+            ImportOrchestrator orchestrator = new ImportOrchestrator();
+            ImportOrchestrator.ImportPreviewData previewData;
+            try {
+                previewData = orchestrator.prepareImport(selectedFile.toPath());
+            } catch (ImportOrchestrator.ImportException ex) {
+                UIUtils.showError(I18n.t(ex.getMessage()));
+                return;
+            }
+
+            FXMLLoader loader = new FXMLLoader(
+                    getClass().getResource("/fxml/import_preview.fxml"),
+                    I18n.getBundle());
+
+            Stage dialog = new Stage();
+            dialog.setScene(new Scene(loader.load()));
+            dialog.setTitle(I18n.t("import.title"));
+            dialog.initOwner(tableEntries.getScene().getWindow());
+            dialog.setResizable(true);
+            dialog.getScene().getStylesheets().add(
+                    Objects.requireNonNull(App.class.getResource("/css/onecritto-theme.css")).toExternalForm()
+            );
+            dialog.getIcons().add(new Image(
+                    Objects.requireNonNull(getClass().getResourceAsStream("/icons/onecritto_white_key_32x32.png"))
+            ));
+
+            ImportPreviewController ctrl = loader.getController();
+            ctrl.setPreviewData(previewData);
+
+            dialog.addEventFilter(MouseEvent.ANY, e -> resetInactivityTimer());
+            dialog.addEventFilter(KeyEvent.ANY, e -> resetInactivityTimer());
+            dialog.getScene().addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+                if (event.isControlDown() && event.getCode() == KeyCode.L) {
+                    lockScreen();
+                    event.consume();
+                }
+            });
+            dialog.initModality(Modality.APPLICATION_MODAL);
+            dialog.showAndWait();
+
+            if (ctrl.isConfirmed()) {
+                List<SecretEntry> imported = ctrl.getImportedEntries();
+                for (SecretEntry entry : imported) {
+                    VaultRepository.VAULT_CONTEXT.getVault().add(entry);
+                }
+                runSaveVaultWithProgress();
+                loadTable();
+                runSentinelAnalysis();
+                UIUtils.showToast(tableEntries,
+                        MessageFormat.format(I18n.t("import.toast.success"), imported.size()));
+            }
+
+        } catch (Exception e) {
+            SecureLogger.error(e.getMessage(), e);
+            UIUtils.showError(I18n.t("import.error.generic"));
         }
     }
 

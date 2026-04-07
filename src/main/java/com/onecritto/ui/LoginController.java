@@ -247,8 +247,8 @@ public class LoginController implements ProgressObserver {
     private double lastShownProgress = 0;
 
     private void disableLoginProgress() {
-      loginProgressBar.setManaged(false);
-        loginProgressLabel.setManaged(false);
+      loginProgressBar.setVisible(false);
+        loginProgressLabel.setVisible(false);
 
         openVaultButton.setDisable(false);
         createVaultButton.setDisable(false);
@@ -258,8 +258,8 @@ public class LoginController implements ProgressObserver {
      * Visualizza progress bar e resetta stato UI
      */
     private void startLoginProgress(String msg) {
-        loginProgressBar.setManaged(true);
-        loginProgressLabel.setManaged(true);
+        loginProgressBar.setVisible(true);
+        loginProgressLabel.setVisible(true);
 
         loginProgressBar.setProgress(0);
         loginProgressLabel.setText(msg != null ? msg : "");
@@ -283,8 +283,6 @@ public class LoginController implements ProgressObserver {
             loginProgressBar.setVisible(false);
             loginProgressLabel.setVisible(false);
             loginProgressLabel.setText("");
-            loginProgressLabel.setManaged(false);
-            loginProgressBar.setManaged(false);
         });
         ft.play();
 

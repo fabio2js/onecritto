@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import de.jensd.fx.glyphs.fontawesome.FontAwesomeIconView?>
+
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.onecritto.ui.ImportPreviewController"
+      spacing="14"
+      prefWidth="900" prefHeight="700"
+      style="-fx-padding: 20;">
+
+    <!-- Header -->
+    <HBox spacing="10" alignment="CENTER_LEFT">
+        <FontAwesomeIconView glyphName="DOWNLOAD" glyphSize="22" style="-fx-fill: #3574F0;"/>
+        <Label fx:id="headerLabel" text="%import.title" style="-fx-font-size: 18px; -fx-font-weight: bold;"/>
+    </HBox>
+
+    <!-- Info sorgente rilevata -->
+    <HBox spacing="8" alignment="CENTER_LEFT">
+        <Label text="%import.detected.source" styleClass="footer-label"/>
+        <Label fx:id="detectedSourceLabel" style="-fx-font-weight: bold;"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Label fx:id="entryCountLabel" style="-fx-font-weight: bold;"/>
+    </HBox>
+
+    <Separator/>
+
+    <!-- SplitPane: Mapping + Preview -->
+    <SplitPane orientation="VERTICAL" dividerPositions="0.4" VBox.vgrow="ALWAYS">
+        <!-- Top: Mapping delle colonne -->
+        <VBox spacing="8" style="-fx-background-color: #2B2D30; -fx-background-radius: 6; -fx-padding: 12;">
+            <Label text="%import.mapping.title" style="-fx-font-size: 14px; -fx-font-weight: bold;"/>
+            <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS"
+                        style="-fx-background-color: transparent;">
+                <VBox fx:id="mappingContainer" spacing="8" style="-fx-padding: 6;">
+                    <!-- Mappings vengono aggiunti dinamicamente dal controller -->
+                </VBox>
+            </ScrollPane>
+        </VBox>
+
+        <!-- Bottom: Anteprima entries -->
+        <VBox spacing="8" style="-fx-padding: 4 0 0 0;">
+            <HBox spacing="10" alignment="CENTER_LEFT" style="-fx-padding: 8 12; -fx-background-color: #2B2D30; -fx-background-radius: 4;">
+                <CheckBox fx:id="selectAllCheckBox" selected="true"/>
+                <Label text="%import.select.all" style="-fx-text-fill: #BBBBBB;"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Label text="%import.preview.title" style="-fx-font-size: 14px; -fx-font-weight: bold;"/>
+            </HBox>
+            <TableView fx:id="previewTable" VBox.vgrow="ALWAYS">
+                <columns>
+                    <TableColumn fx:id="previewSelectCol" prefWidth="40" sortable="false" resizable="false"/>
+                    <TableColumn fx:id="previewTitleCol" text="%main.col.title" prefWidth="170"/>
+                    <TableColumn fx:id="previewUsernameCol" text="%main.col.username" prefWidth="170"/>
+                    <TableColumn fx:id="previewPasswordCol" text="%import.preview.col.password" prefWidth="110"/>
+                    <TableColumn fx:id="previewUrlCol" text="URL" prefWidth="170"/>
+                    <TableColumn fx:id="previewCategoryCol" text="%main.col.category" prefWidth="100"/>
+                </columns>
+            </TableView>
+        </VBox>
+    </SplitPane>
+
+    <!-- Footer con bottoni -->
+    <HBox spacing="12" alignment="CENTER_RIGHT" style="-fx-padding: 8 0 0 0;">
+        <Label fx:id="statusLabel" styleClass="footer-label" HBox.hgrow="ALWAYS"/>
+        <Button text="%cancel" onAction="#handleCancel">
+            <graphic><FontAwesomeIconView glyphName="TIMES" glyphSize="14"/></graphic>
+        </Button>
+        <Button fx:id="importButton" text="%import.btn.confirm" onAction="#handleImport"
+                styleClass="primary-button">
+            <graphic><FontAwesomeIconView glyphName="CHECK" glyphSize="14"/></graphic>
+        </Button>
+    </HBox>
+
+</VBox>

@@ -105,6 +105,10 @@
                                             <graphic><FontAwesomeIconView glyphName="SHIELD" glyphSize="14"/></graphic>
                                         </Button>
 
+                                        <Button text="%main.btn.import" onAction="#handleImport">
+                                            <graphic><FontAwesomeIconView glyphName="DOWNLOAD" glyphSize="14"/></graphic>
+                                        </Button>
+
 
                                     </HBox>
 
