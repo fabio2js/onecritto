@@ -44,6 +44,14 @@
 - **Dashboard**: vault health score, rotation plan for weak/old/duplicate passwords
 
 
+### CSV Password Import
+- Import passwords from **Chrome**, **Bitwarden**, **KeePass**, **LastPass**, and generic CSV files
+- Auto-detection of the source format — no manual configuration needed
+- Supports comma and semicolon delimiters, UTF-8 BOM handling
+- Field mapping engine automatically maps columns to OneCritto entry fields
+- Preview imported entries before committing to the vault
+- Duplicates and conflicts highlighted during import
+
 ### SSH Connection Manager
 - Save SSH connection profiles (name, host, port, username, private key) inside the encrypted vault
 - Private keys stored as encrypted files in the vault — decrypted on the fly when connecting
