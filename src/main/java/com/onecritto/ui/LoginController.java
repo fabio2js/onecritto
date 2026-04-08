@@ -355,8 +355,13 @@ public class LoginController implements ProgressObserver {
             return;
         }
 
-        int score = passwordAnalyzer.scorePassword(pwd);
-        if (score < 60) {
+        boolean hasUpper = false, hasLower = false, hasDigit = false;
+        for (char c : pwd) {
+            if (Character.isUpperCase(c)) hasUpper = true;
+            else if (Character.isLowerCase(c)) hasLower = true;
+            else if (Character.isDigit(c)) hasDigit = true;
+        }
+        if (!hasUpper || !hasLower || !hasDigit) {
             showError(I18n.t("login.error.weak_password"));
             return;
         }
