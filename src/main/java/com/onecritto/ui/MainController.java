@@ -56,10 +56,8 @@ import javafx.stage.*;
 import javafx.stage.Window;
 import javafx.util.Duration;
 
-import javax.crypto.Cipher;
-import javax.crypto.CipherInputStream;
 import javax.crypto.SecretKey;
-import javax.crypto.spec.GCMParameterSpec;
+
 import org.bouncycastle.crypto.engines.AESEngine;
 import org.bouncycastle.crypto.modes.GCMBlockCipher;
 import org.bouncycastle.crypto.modes.GCMModeCipher;
@@ -96,22 +94,23 @@ public class MainController implements ProgressObserver {
     @FXML public Button btnOpenFile;
     @FXML public Button btnExportFile;
     @FXML public Button btnElimina;
+    @FXML public Button btnWipeTemp;
 
     private boolean acquireVaultLock(String message) {
         if (vaultBusy) {
             UIUtils.showToast(fileTable, message);
-            return false;
+            return true;
         }
 
         vaultBusy = true;
 
         if (locked) {
-            return true;
+            return false;
         }
         busyOverlay.setVisible(true);
 
 
-        return true;
+        return false;
     }
 
     private void releaseVaultLock() {
@@ -1140,7 +1139,7 @@ public class MainController implements ProgressObserver {
             if (infoLabel != null) {
 
                 infoLabel.setText(
-                        MessageFormat.format(I18n.t("main.vault.stats"), 0, 0)
+                        MessageFormat.format(I18n.t("main.vault.stats"), 0, 0,0)
                 );
             }
             return;
@@ -1148,10 +1147,11 @@ public class MainController implements ProgressObserver {
 
         int entryCount =  VaultRepository.VAULT_CONTEXT.getVault().getEntries().size();
         int fileCount  =  VaultRepository.VAULT_CONTEXT.getVault().getFiles().size();
+        int sshCount   =  VaultRepository.VAULT_CONTEXT.getVault().getSshConnections().size();
 
         if (infoLabel != null) {
             infoLabel.setText(
-                    MessageFormat.format(I18n.t("main.vault.stats"), entryCount, fileCount)
+                    MessageFormat.format(I18n.t("main.vault.stats"), entryCount, fileCount, sshCount)
             );
 
         }
@@ -1204,7 +1204,9 @@ public class MainController implements ProgressObserver {
         btnOpenFile.setDisable(isDisabled);
         btnExportFile.setDisable(isDisabled);
         btnElimina.setDisable(isDisabled);
+        tabSsh.setDisable(isDisabled);
         tabPassowrd.setDisable(isDisabled);
+        btnWipeTemp.setDisable(isDisabled);
 
     }
 
@@ -1371,7 +1373,7 @@ public class MainController implements ProgressObserver {
         }
 
 
-        if (!acquireVaultLock(I18n.t("main.busy.operation"))) return;
+        if (acquireVaultLock(I18n.t("main.busy.operation"))) return;
 
 
         long totalBytes = sf.getSize();  // lunghezza CIPHERTEXT (incluso TAG)
@@ -1394,37 +1396,7 @@ public class MainController implements ProgressObserver {
 
                 SecretKey key = VaultRepository.VAULT_CONTEXT.getKeyEnc();
 
-                try {
-                    decryptBlobToTemp(key, sf, temp, totalBytes);
-                } catch (org.bouncycastle.crypto.InvalidCipherTextException gcmFail) {
-                    // Fallback: il blob potrebbe essere cifrato con la chiave legacy
-                    // (vault salvato dopo migrazione deriveKeys senza ri-cifratura blob)
-                    SecureLogger.debug("GCM failed with current key, trying legacy key derivation");
-
-                    @SuppressWarnings("deprecation")
-                    SecretKey legacyKey = CryptoServiceV4.deriveMasterKey(
-                            VaultRepository.VAULT_CONTEXT.getMasterPassword(),
-                            VaultRepository.VAULT_CONTEXT.getSalt()
-                    );
-
-                    // Ri-crea il file temporaneo (il precedente contiene dati parziali/corrotti)
-                    Files.deleteIfExists(temp);
-                    Path retryTemp = TempVaultFiles.createTempFileForOpen(sf.getName());
-
-                    try {
-                        decryptBlobToTemp(legacyKey, sf, retryTemp, totalBytes);
-                    } catch (Exception retryFail) {
-                        Files.deleteIfExists(retryTemp);
-                        throw retryFail;
-                    }
-
-                    // Legacy key funziona: copiamo il risultato nel path atteso
-                    Files.move(retryTemp, temp, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-
-                    // Salva la legacy key per la ri-cifratura al prossimo save
-                    VaultRepository.VAULT_CONTEXT.setLegacyKeyEnc(legacyKey);
-                    SecureLogger.debug("File decrypted with legacy key; vault will be re-encrypted on next save");
-                }
+                decryptBlobToTemp(key, sf, temp, totalBytes);
 
                 SecureLogger.debug("Forcing light memory cleanup after decrypt");
                 System.gc();
@@ -1538,7 +1510,7 @@ public class MainController implements ProgressObserver {
     }
 
     private void runSaveVaultWithProgress() {
-        if (!acquireVaultLock(I18n.t("main.busy.operation"))) return;
+        if (acquireVaultLock(I18n.t("main.busy.operation"))) return;
 
         Task<Void> task = new Task<>() {
             @Override
@@ -1640,7 +1612,7 @@ public class MainController implements ProgressObserver {
         SecretFile sf = fileTable.getSelectionModel().getSelectedItem();
         if (sf == null) return;
 
-        if (!acquireVaultLock(I18n.t("main.busy.operation"))) return;
+        if (acquireVaultLock(I18n.t("main.busy.operation"))) return;
 
         FileChooser chooser = new FileChooser();
         chooser.setTitle(I18n.t("main.export.file"));
@@ -1666,29 +1638,7 @@ public class MainController implements ProgressObserver {
 
                 SecretKey key = VaultRepository.VAULT_CONTEXT.getKeyEnc();
 
-                try {
-                    decryptBlobToTemp(key, sf, dest.toPath(), encryptedSize);
-                } catch (org.bouncycastle.crypto.InvalidCipherTextException gcmFail) {
-                    SecureLogger.debug("Export: GCM failed with current key, trying legacy key");
-
-                    @SuppressWarnings("deprecation")
-                    SecretKey legacyKey = CryptoServiceV4.deriveMasterKey(
-                            VaultRepository.VAULT_CONTEXT.getMasterPassword(),
-                            VaultRepository.VAULT_CONTEXT.getSalt()
-                    );
-
-                    Files.deleteIfExists(dest.toPath());
-
-                    try {
-                        decryptBlobToTemp(legacyKey, sf, dest.toPath(), encryptedSize);
-                    } catch (Exception retryFail) {
-                        Files.deleteIfExists(dest.toPath());
-                        throw retryFail;
-                    }
-
-                    VaultRepository.VAULT_CONTEXT.setLegacyKeyEnc(legacyKey);
-                    SecureLogger.debug("Export: decrypted with legacy key");
-                }
+                decryptBlobToTemp(key, sf, dest.toPath(), encryptedSize);
 
                 return null;
             }
@@ -2299,7 +2249,7 @@ public class MainController implements ProgressObserver {
             return;
         }
 
-        if (!acquireVaultLock(I18n.t("main.busy.operation"))) return;
+        if (acquireVaultLock(I18n.t("main.busy.operation"))) return;
 
         final SecretFile sf = keyFile;
         final SshConnection conn = selected;
@@ -2310,21 +2260,7 @@ public class MainController implements ProgressObserver {
                 Path temp = TempVaultFiles.createTempFileForOpen(sf.getName());
                 SecretKey key = VaultRepository.VAULT_CONTEXT.getKeyEnc();
 
-                try {
-                    decryptBlobToTemp(key, sf, temp, sf.getSize());
-                } catch (org.bouncycastle.crypto.InvalidCipherTextException gcmFail) {
-                    SecureLogger.debug("GCM failed with current key, trying legacy key for SSH key");
-                    @SuppressWarnings("deprecation")
-                    SecretKey legacyKey = CryptoServiceV4.deriveMasterKey(
-                            VaultRepository.VAULT_CONTEXT.getMasterPassword(),
-                            VaultRepository.VAULT_CONTEXT.getSalt()
-                    );
-                    Files.deleteIfExists(temp);
-                    Path retryTemp = TempVaultFiles.createTempFileForOpen(sf.getName());
-                    decryptBlobToTemp(legacyKey, sf, retryTemp, sf.getSize());
-                    Files.move(retryTemp, temp, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-                    VaultRepository.VAULT_CONTEXT.setLegacyKeyEnc(legacyKey);
-                }
+                decryptBlobToTemp(key, sf, temp, sf.getSize());
 
                 // Set restrictive permissions on the key file (ssh requires 600)
                 try {

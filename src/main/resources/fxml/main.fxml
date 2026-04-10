@@ -147,7 +147,7 @@
 
                                         <Region HBox.hgrow="ALWAYS"/>
 
-                                        <Button text="%main.btn.wipetemp" onAction="#handleWipeTemp">
+                                        <Button text="%main.btn.wipetemp" fx:id="btnWipeTemp" onAction="#handleWipeTemp">
                                             <graphic><FontAwesomeIconView glyphName="ERASER" glyphSize="14"/></graphic>
                                         </Button>
                                     </HBox>

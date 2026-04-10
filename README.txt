@@ -1,5 +1,5 @@
 ===============================================================
-                  OneCritto v2.8.1 - README
+                  OneCritto v2.9.0 - README
 ===============================================================
 
   Secure, offline, local password manager.
@@ -12,7 +12,7 @@
   ├── runtime/                  Bundled JRE (Java 21)
   ├── OneCritto.bat             Quick launch (Windows)
   ├── OneCritto.ico             Application icon
-  └── onecritto-vault-all-2.8.1.jar   Application
+  └── onecritto-vault-all-2.9.0.jar   Application
 
 ===============================================================
   QUICK START
@@ -47,7 +47,7 @@
   • Do NOT delete or rename the "runtime" folder.
     It contains the Java Runtime required to run the app.
 
-  • Do NOT delete the file  onecritto-vault-all-2.8.1.jar.
+  • Do NOT delete the file  onecritto-vault-all-2.9.0.jar.
     It is the core of the application.
 
   • Vault files (.critto) are saved in the location chosen
@@ -68,7 +68,7 @@
   → Make sure the "runtime\bin" folder exists and has not
     been moved or deleted.
 
-  Error: "onecritto-vault-all-2.8.1.jar non trovato" (JAR not found)
+  Error: "onecritto-vault-all-2.9.0.jar non trovato" (JAR not found)
   → Make sure the JAR file is in the same folder as
     OneCritto.bat.
 

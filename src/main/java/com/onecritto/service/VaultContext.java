@@ -9,7 +9,7 @@ import java.nio.file.Path;
 import java.util.Arrays;
 
 @Data
-@ToString(exclude = {"masterPassword", "salt", "keyEnc", "keyMac", "legacyKeyEnc", "encryptedMetadata", "metadataIv"})
+@ToString(exclude = {"masterPassword", "salt", "keyEnc", "keyMac", "encryptedMetadata", "metadataIv"})
 public class VaultContext {
 
     private Path vaultPath;
@@ -19,13 +19,6 @@ public class VaultContext {
 
     private SecretKey keyEnc;
     private SecretKey keyMac;
-
-    /**
-     * Chiave legacy (derivazione 32 byte singola) usata per aprire il vault.
-     * Non-null solo se il vault è stato aperto con il fallback legacy.
-     * Serve a saveVault() per ri-cifrare i blob dei file durante la migrazione.
-     */
-    private SecretKey legacyKeyEnc;
 
     // === V3: METADATI CIFRATI ===
     private byte[] encryptedMetadata;  // blob AES-GCM
@@ -49,12 +42,6 @@ public class VaultContext {
         if (keyEnc != null) {
             try { keyEnc.destroy(); } catch (Exception ignored) {}
             keyEnc = null;
-        }
-
-        // 2b) Cancella chiave legacy se presente
-        if (legacyKeyEnc != null) {
-            try { legacyKeyEnc.destroy(); } catch (Exception ignored) {}
-            legacyKeyEnc = null;
         }
 
         // 3) Cancella MAC key

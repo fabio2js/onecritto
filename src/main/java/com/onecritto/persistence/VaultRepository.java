@@ -108,25 +108,8 @@ public class VaultRepository extends ProgressObservable {
             VAULT_CONTEXT.setKeyEnc(key);              // usata per i file
             VAULT_CONTEXT.setEncryptedMetadata(encMeta); // usata per lo sblocco da lock screen
 
-            boolean hmacOk = CryptoServiceV4.verifyHmac(input, hmacKey, hmacPos);
-
-            // Fallback per vault legacy (masterKey == hmacKey, derivazione 32 byte singola)
-            if (!hmacOk) {
-                @SuppressWarnings("deprecation")
-                SecretKey legacyKey = CryptoServiceV4.deriveMasterKey(password, salt);
-                if (CryptoServiceV4.verifyHmac(input, legacyKey, hmacPos)) {
-                    key = legacyKey;
-                    VAULT_CONTEXT.setKeyEnc(key);
-                    // Salva la chiave legacy per consentire la ri-cifratura dei blob
-                    // durante il prossimo salvataggio (migrazione a deriveKeys 64 byte)
-                    VAULT_CONTEXT.setLegacyKeyEnc(legacyKey);
-                    SecureLogger.debug("loadVaultV4: fallback a chiave legacy (32 byte)");
-                } else {
-                    throw new SecurityException("HMAC non valido: file corrotto o password errata");
-                }
-            } else {
-                // Vault già migrato: nessuna chiave legacy
-                VAULT_CONTEXT.setLegacyKeyEnc(null);
+            if (!CryptoServiceV4.verifyHmac(input, hmacKey, hmacPos)) {
+                throw new SecurityException("HMAC non valido: file corrotto o password errata");
             }
             notifyProgress(0.75);
             byte[] metadataJson = CryptoServiceV3.decryptMetadata(encMeta, key, metaIv);
@@ -185,9 +168,6 @@ public class VaultRepository extends ProgressObservable {
         }
     }
 
-    // =========================================================================
-    //                               LOAD V3
-    // =========================================================================
 
 
 
@@ -256,20 +236,13 @@ public class VaultRepository extends ProgressObservable {
             out.write(metaIv);
             out.flush();
 
-            long posAfterHeader = fos.getChannel().position();
+
 
             // Chiavi separate (64 byte Argon2 → AES + HMAC)
             SecretKey[] keys = CryptoServiceV4.deriveKeys(
                     VAULT_CONTEXT.getMasterPassword(), salt);
             SecretKey key = keys[0];
             SecretKey hmacKey = keys[1];
-
-            // Rileva se serve ri-cifrare i blob (migrazione da chiave legacy 32 byte)
-            SecretKey legacyKey = VAULT_CONTEXT.getLegacyKeyEnc();
-            boolean needsReEncrypt = legacyKey != null;
-            if (needsReEncrypt) {
-                SecureLogger.debug("saveVault: migrazione chiave legacy → deriveKeys, ri-cifratura blob file");
-            }
 
             VAULT_CONTEXT.setKeyEnc(key);
             // 3) METADATA in memoria
@@ -299,9 +272,6 @@ public class VaultRepository extends ProgressObservable {
 
 
 
-            long posBeforeFiles = fos.getChannel().position();
-
-
 
 
 // ============ CALCOLO DIMENSIONE TOTALE PER IL PROGRESS =============
@@ -313,9 +283,7 @@ public class VaultRepository extends ProgressObservable {
 
                     Path original = f.getVaultPath();
 
-                    // Caso A: file NUOVO → vaultPath punta al file sorgente (OK)
-                    // Caso B: file nel vault → vaultPath punta al vault (NON OK)
-                    // In quel caso NON aggiungo la size (verrà copiato come file cifrato)
+
                     try {
                         if (original != null && java.nio.file.Files.exists(original)) {
                             totalBytesForProgress += java.nio.file.Files.size(original);
@@ -347,7 +315,7 @@ public class VaultRepository extends ProgressObservable {
                                     && f.getBlobOffset() > 0
                                     && f.getSize() > 0;
 
-                    if (copyFromOldVault && !needsReEncrypt) {
+                    if (copyFromOldVault) {
 
                         // Caso A: copia diretta del blob cifrato (stessa chiave)
                         long oldIvOffset = f.getBlobOffset() - OneCrittoV3Format.FILE_IV_LENGTH;
@@ -394,54 +362,9 @@ public class VaultRepository extends ProgressObservable {
                         f.setSize(encryptedSize);
                         // iv resta quello già presente in f.getIv()
 
-                    } else if (copyFromOldVault && needsReEncrypt) {
-
-                        // Caso A-bis: migrazione chiave legacy → ri-cifra il blob
-                        if (rafOld == null) {
-                            throw new IOException("Vault precedente non disponibile per ri-cifratura");
-                        }
-
-                        byte[] newFileIv = CryptoServiceV3.randomBytes(OneCrittoV3Format.FILE_IV_LENGTH);
-                        out.write(newFileIv);
-                        out.flush();
-
-                        long contentOffsetNew = fos.getChannel().position();
-
-                        CryptoServiceV3.reencryptStream(
-                                rafOld, f.getBlobOffset(), f.getSize(),
-                                legacyKey, f.getIv(),
-                                out, key, newFileIv
-                        );
-                        out.flush();
-
-                        long after = fos.getChannel().position();
-                        long encryptedSize = after - contentOffsetNew;
-
-                        fm.setOffset(ivOffsetNew);
-                        fm.setSize(encryptedSize);
-
-                        writtenBytesForProgress += encryptedSize;
-                        if (totalBytesForProgress > 0) {
-                            double progress = (double) writtenBytesForProgress / (double) totalBytesForProgress;
-                            notifyProgress(progress);
-                            notifyMessage("Ri-cifratura " + f.getName() + " (" + String.format("%.0f%%", progress * 100) + ")");
-                        }
-
-                        f.setBlobOffset(contentOffsetNew);
-                        f.setSize(encryptedSize);
-                        f.setIv(newFileIv);
-
                     } else {
 
-                        long plainSize = java.nio.file.Files.size(f.getVaultPath());
-                        if (plainSize > CryptoServiceV3.GCM_MAX_PLAINTEXT) {
-                            saveFailed = true;
-                            throw new IOException(
-                                    "Il file \"" + f.getName() + "\" (" + plainSize + " byte) " +
-                                            "supera il limite di ~2GB supportato dall'algoritmo AES/GCM " +
-                                            "del provider corrente."
-                            );
-                        }
+
                         // Caso B: file nuovo → cifra dal file sorgente
                         byte[] fileIv = CryptoServiceV3.randomBytes(OneCrittoV3Format.FILE_IV_LENGTH);
                         out.write(fileIv);
@@ -465,7 +388,7 @@ public class VaultRepository extends ProgressObservable {
 
                         long after = fos.getChannel().position();
                         long encryptedSize = after - contentOffsetNew;
-                        long channelDelta = encryptedSize - writtenPlain;
+
                         writtenBytesForProgress += writtenPlain;
                         if (totalBytesForProgress > 0) {
                             double progress = (double) writtenBytesForProgress / (double) totalBytesForProgress;
@@ -489,7 +412,6 @@ public class VaultRepository extends ProgressObservable {
                 }
             }
 
-            long posAfterFiles = fos.getChannel().position();
 
 
             // 5) METADATA cifrati: [ENC_META][META_LEN_LE]
@@ -499,12 +421,11 @@ public class VaultRepository extends ProgressObservable {
             // Aggiorna il context così che unlock dopo lock usi IV e blob coerenti
             VAULT_CONTEXT.setEncryptedMetadata(encMeta);
 
-            long metaEncPos = fos.getChannel().position();
 
             out.write(encMeta);
             out.flush();
 
-            long metaLenPos = fos.getChannel().position();
+
 
             OneCrittoV3Format.writeLongLE(out, encMeta.length);
             out.flush();
@@ -530,12 +451,10 @@ public class VaultRepository extends ProgressObservable {
             byte[] hmac = mac.doFinal();
 
 
-            long hmacPos = fos.getChannel().position();
 
             out.write(hmac);
             out.flush();
 
-            long finalSize = fos.getChannel().position();
 
             notifyProgress(1.0);
             notifyMessage("Vault saved successfully");
@@ -584,12 +503,6 @@ public class VaultRepository extends ProgressObservable {
             }
         }
 
-        // 9) Migrazione completata: cancella chiave legacy
-        if (VAULT_CONTEXT.getLegacyKeyEnc() != null) {
-            try { VAULT_CONTEXT.getLegacyKeyEnc().destroy(); } catch (Exception ignored) {}
-            VAULT_CONTEXT.setLegacyKeyEnc(null);
-            SecureLogger.debug("saveVault: migrazione chiave legacy completata");
-        }
     }
     private static long usedMB() {
         Runtime rt = Runtime.getRuntime();

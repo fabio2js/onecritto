@@ -70,30 +70,9 @@ public class CryptoServiceV4 {
         return out;
     }
 
-    /**
-     * Deriva la chiave AES-256 per la cifratura (master key).
-     * @deprecated Usare {@link #deriveKeys(char[], byte[])} per separazione corretta delle chiavi.
-     */
-    @Deprecated
-    public static SecretKey deriveMasterKey(char[] password, byte[] salt)
-            throws GeneralSecurityException {
 
-        byte[] keyBytes = argon2(password, salt, OneCrittoV4Format.AES_KEY_LENGTH);
-        return new SecretKeySpec(keyBytes, "AES");
-    }
 
-    /**
-     * Deriva la chiave HMAC da password + salt.
-     * @deprecated Usare {@link #deriveKeys(char[], byte[])} per separazione corretta delle chiavi.
-     */
-    @Deprecated
-    public static SecretKey deriveHmacKey(char[] password, byte[] salt)
-            throws GeneralSecurityException {
 
-        // 32 byte = 256 bit per HMAC-SHA256
-        byte[] keyBytes = argon2(password, salt, 32);
-        return new SecretKeySpec(keyBytes, "HmacSHA256");
-    }
 
     /**
      * Deriva in una sola chiamata Argon2 (64 byte) sia la master key AES-256
