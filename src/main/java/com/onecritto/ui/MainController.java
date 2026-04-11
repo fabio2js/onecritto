@@ -95,6 +95,7 @@ public class MainController implements ProgressObserver {
     @FXML public Button btnExportFile;
     @FXML public Button btnElimina;
     @FXML public Button btnWipeTemp;
+    @FXML public Label lblTempFileCount;
 
     private boolean acquireVaultLock(String message) {
         if (vaultBusy) {
@@ -633,6 +634,7 @@ public class MainController implements ProgressObserver {
         loadTable();
 
         // file table
+        updateTempFileCount();
         fileNameColumn.setCellValueFactory(new PropertyValueFactory<>("name"));
         fileTypeColumn.setCellValueFactory(new PropertyValueFactory<>("contentType"));
         fileSizeColumn.setCellValueFactory(new PropertyValueFactory<>("size"));
@@ -1432,6 +1434,7 @@ public class MainController implements ProgressObserver {
                 // Aggiorna solo in RAM (UI) l’ultimo accesso
                 sf.setLastEdit(System.currentTimeMillis());
                 fileTable.refresh();
+                updateTempFileCount();
                 releaseVaultLock();
 
             } catch (Exception ex) {
@@ -1831,8 +1834,29 @@ public class MainController implements ProgressObserver {
 
     @FXML
     private void handleWipeTemp() {
-        TempVaultFiles.cleanupTempDirSecure();
-        UIUtils.showToast(fileTable, I18n.t("main.toast.wipetemp.done"));
+        Scene scene = btnWipeTemp.getScene();
+        scene.setCursor(javafx.scene.Cursor.WAIT);
+        btnWipeTemp.setDisable(true);
+
+        new Thread(() -> {
+            TempVaultFiles.cleanupTempDirSecure();
+            Platform.runLater(() -> {
+                scene.setCursor(javafx.scene.Cursor.DEFAULT);
+                btnWipeTemp.setDisable(false);
+                updateTempFileCount();
+                UIUtils.showToast(fileTable, I18n.t("main.toast.wipetemp.done"));
+            });
+        }).start();
+    }
+
+    public void updateTempFileCount() {
+        try {
+            Path tempDir = TempVaultFiles.getTempDir();
+            long count = Files.list(tempDir).filter(Files::isRegularFile).count();
+            lblTempFileCount.setText("Files: " + count);
+        } catch (Exception e) {
+            lblTempFileCount.setText("Files: 0");
+        }
     }
 
 
@@ -2279,6 +2303,7 @@ public class MainController implements ProgressObserver {
             Path keyPath = task.getValue();
             String command = buildSshCommand(conn, keyPath);
             launchTerminalWithCommand(command);
+            updateTempFileCount();
         });
 
         task.setOnFailed(e -> {

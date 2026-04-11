@@ -147,6 +147,9 @@
 
                                         <Region HBox.hgrow="ALWAYS"/>
 
+                                        <Label fx:id="lblTempFileCount" style="-fx-text-fill: #aaaaaa; -fx-font-size: 12px; -fx-padding: 0 6 0 0;">
+                                            <HBox.margin><Insets top="16"/></HBox.margin>
+                                        </Label>
                                         <Button text="%main.btn.wipetemp" fx:id="btnWipeTemp" onAction="#handleWipeTemp">
                                             <graphic><FontAwesomeIconView glyphName="ERASER" glyphSize="14"/></graphic>
                                         </Button>

@@ -125,11 +125,17 @@ public class VaultRepository extends ProgressObservable {
 
             if (meta.getFiles() != null) {
 
+                long headerSize = OneCrittoV4Format.MAGIC.length + 4
+                        + OneCrittoV4Format.SALT_LENGTH + OneCrittoV4Format.METADATA_IV_LENGTH;
+
                 for (FileMeta fm : meta.getFiles()) {
 
-
-
                     long ivOffset = fm.getOffset();
+
+                    if (ivOffset < headerSize || ivOffset + fm.getSize() > metaEncPos) {
+                        throw new IOException("File corrotto: offset fuori range");
+                    }
+
                     long contentOffset = ivOffset + OneCrittoV3Format.FILE_IV_LENGTH;
 
                     raf.seek(ivOffset);
@@ -389,13 +395,6 @@ public class VaultRepository extends ProgressObservable {
                         long after = fos.getChannel().position();
                         long encryptedSize = after - contentOffsetNew;
 
-                        writtenBytesForProgress += writtenPlain;
-                        if (totalBytesForProgress > 0) {
-                            double progress = (double) writtenBytesForProgress / (double) totalBytesForProgress;
-                            notifyProgress(progress);
-                            notifyMessage("Cifratura " + f.getName() + " (" + String.format("%.0f%%", progress * 100) + ")");
-                        }
-
 
                         fm.setOffset(ivOffsetNew);
                         fm.setSize(encryptedSize);
@@ -403,11 +402,6 @@ public class VaultRepository extends ProgressObservable {
                         f.setBlobOffset(contentOffsetNew);
                         f.setSize(encryptedSize);
                         f.setIv(fileIv);
-                        long total = vault.getFiles().stream().mapToLong(SecretFile::getSize).sum();
-                        long done  = fileMetas.stream().mapToLong(FileMeta::getSize).sum();
-                        double progress = total > 0 ? (double) done / total : 0.0;
-                        notifyProgress(progress);
-                        notifyMessage("Cifratura " + f.getName() + " (" + String.format("%.0f%%", progress * 100) + ")");
                     }
                 }
             }
