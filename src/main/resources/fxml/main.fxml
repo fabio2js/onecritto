@@ -45,6 +45,8 @@
                     <!-- Label info dinamica -->
                     <Label fx:id="infoLabel" styleClass="stats-label"/>
 
+                    <Label fx:id="clipboardCountdownLabel" styleClass="countdown-label" visible="false"/>
+
                     <Region HBox.hgrow="ALWAYS"/>
 
                     <HBox spacing="10" alignment="CENTER_RIGHT">
@@ -147,7 +149,7 @@
 
                                         <Region HBox.hgrow="ALWAYS"/>
 
-                                        <Label fx:id="lblTempFileCount" style="-fx-text-fill: #aaaaaa; -fx-font-size: 12px; -fx-padding: 0 6 0 0;">
+                                        <Label fx:id="lblTempFileCount" style="-fx-font-size: 12px; -fx-padding: 0 6 0 0;" styleClass="countdown-label">
                                             <HBox.margin><Insets top="16"/></HBox.margin>
                                         </Label>
                                         <Button text="%main.btn.wipetemp" fx:id="btnWipeTemp" onAction="#handleWipeTemp">
@@ -175,9 +177,6 @@
                                     </TableView>
 
                                     <HBox spacing="12" style="-fx-padding:10 10 10 10;">
-                                        <Button text="%ssh.btn.connect" onAction="#handleSshConnect">
-                                            <graphic><FontAwesomeIconView glyphName="TERMINAL" glyphSize="14"/></graphic>
-                                        </Button>
                                         <Button text="%ssh.btn.add" onAction="#handleSshAdd">
                                             <graphic><FontAwesomeIconView glyphName="PLUS" glyphSize="14"/></graphic>
                                         </Button>
@@ -187,11 +186,9 @@
                                         <Button text="%ssh.btn.delete" onAction="#handleSshDelete">
                                             <graphic><FontAwesomeIconView glyphName="TRASH" glyphSize="14"/></graphic>
                                         </Button>
-
                                         <Region HBox.hgrow="ALWAYS"/>
-
-                                        <Button text="%ssh.btn.copy" onAction="#handleSshCopyCommand">
-                                            <graphic><FontAwesomeIconView glyphName="COPY" glyphSize="14"/></graphic>
+                                        <Button text="%ssh.btn.connect" onAction="#handleSshConnect">
+                                            <graphic><FontAwesomeIconView glyphName="TERMINAL" glyphSize="14"/></graphic>
                                         </Button>
                                     </HBox>
                                 </VBox>

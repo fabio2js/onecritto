@@ -173,6 +173,8 @@ public class MainController implements ProgressObserver {
     private FilteredList<SshConnection> filteredSsh;
 
     @FXML private Label infoLabel;
+    @FXML private Label clipboardCountdownLabel;
+    private javafx.animation.Timeline clipboardTimer;
 
 
     @FXML private ProgressBar fileProgressBar;
@@ -613,9 +615,36 @@ public class MainController implements ProgressObserver {
             }
         });
 
-// --- DOPPIO CLICK PER APRIRE MODIFICA VOCE ---
+// --- DOPPIO CLICK + CONTEXT MENU ---
         tableEntries.setRowFactory(tv -> {
             TableRow<SecretEntry> row = new TableRow<>();
+
+            // Context menu
+            ContextMenu ctxMenu = new ContextMenu();
+            javafx.scene.control.MenuItem copyPwd = new javafx.scene.control.MenuItem(I18n.t("main.ctx.copy.password"));
+            javafx.scene.control.MenuItem copyUsr = new javafx.scene.control.MenuItem(I18n.t("main.ctx.copy.username"));
+
+            copyPwd.setOnAction(e -> {
+                SecretEntry entry = row.getItem();
+                if (entry != null && entry.getPassword() != null) {
+                    copyToClipboardWithCountdown(entry.getPassword());
+                }
+            });
+
+            copyUsr.setOnAction(e -> {
+                SecretEntry entry = row.getItem();
+                if (entry != null && entry.getUsername() != null) {
+                    copyToClipboardWithCountdown(entry.getUsername());
+                }
+            });
+
+            ctxMenu.getItems().addAll(copyPwd, copyUsr);
+
+            row.contextMenuProperty().bind(
+                Bindings.when(row.emptyProperty())
+                    .then((ContextMenu) null)
+                    .otherwise(ctxMenu)
+            );
 
             row.setOnMouseClicked(event -> {
                 if (event.getClickCount() == 2 && !row.isEmpty()) {
@@ -756,6 +785,64 @@ public class MainController implements ProgressObserver {
 
 
     @FXML private Label countdownLabel;
+
+    private static final int CLIPBOARD_COUNTDOWN_SECONDS = 20;
+
+    private boolean clipboardOwned = false;
+
+    private void copyToClipboardWithCountdown(char[] data) {
+        if (data == null || data.length == 0) return;
+
+        // Copy to clipboard using temporary String (same pattern as SecureInputBase)
+        javafx.scene.input.ClipboardContent cc = new javafx.scene.input.ClipboardContent();
+        cc.putString(new String(data));
+        javafx.scene.input.Clipboard.getSystemClipboard().setContent(cc);
+        clipboardOwned = true;
+
+        // Stop any existing clipboard timer
+        if (clipboardTimer != null) clipboardTimer.stop();
+
+        final AtomicLong clipRemaining = new AtomicLong(CLIPBOARD_COUNTDOWN_SECONDS);
+        clipboardCountdownLabel.setVisible(true);
+
+        clipboardTimer = new Timeline(
+                new KeyFrame(Duration.seconds(1), e -> {
+                    long sec = clipRemaining.decrementAndGet();
+                    if (sec <= 0) {
+                        // Clear clipboard like SecureInputBase.clearWindowsClipboardIfOwned()
+                        if (clipboardOwned) {
+                            javafx.scene.input.ClipboardContent empty = new javafx.scene.input.ClipboardContent();
+                            empty.putString("");
+                            javafx.scene.input.Clipboard.getSystemClipboard().setContent(empty);
+                            clipboardOwned = false;
+                        }
+                        clipboardCountdownLabel.setVisible(false);
+                        clipboardTimer.stop();
+                        return;
+                    }
+                    clipboardCountdownLabel.setText(
+                        MessageFormat.format(I18n.t("main.clipboard.countdown"), sec));
+                    if (sec <= 5) {
+                        clipboardCountdownLabel.setStyle(
+                            "-fx-text-fill: red; -fx-font-size: 14px; -fx-padding: 6;");
+                    } else if (sec <= 10) {
+                        clipboardCountdownLabel.setStyle(
+                            "-fx-text-fill: orange; -fx-font-size: 14px; -fx-padding: 6;");
+                    } else {
+                        clipboardCountdownLabel.setStyle(
+                            "-fx-text-fill: #00FFFF; -fx-font-size: 14px; -fx-padding: 6;");
+                    }
+                })
+        );
+        clipboardTimer.setCycleCount(CLIPBOARD_COUNTDOWN_SECONDS);
+
+        // Set initial state
+        clipboardCountdownLabel.setText(
+            MessageFormat.format(I18n.t("main.clipboard.countdown"), CLIPBOARD_COUNTDOWN_SECONDS));
+        clipboardCountdownLabel.setStyle(
+            "-fx-text-fill: #00FFFF; -fx-font-size: 14px; -fx-padding: 6;");
+        clipboardTimer.playFromStart();
+    }
 
     public static void fixTabBorder(Tab ta) {
         Runnable apply = () -> ta.setStyle(
@@ -1854,8 +1941,15 @@ public class MainController implements ProgressObserver {
             Path tempDir = TempVaultFiles.getTempDir();
             long count = Files.list(tempDir).filter(Files::isRegularFile).count();
             lblTempFileCount.setText("Files: " + count);
+            if (count > 0) {
+                lblTempFileCount.getStyleClass().removeAll("countdown-label", "countdown-label-paste");
+                lblTempFileCount.getStyleClass().add("countdown-label-paste");
+            } else {
+                lblTempFileCount.getStyleClass().removeAll("countdown-label", "countdown-label-paste");
+            }
         } catch (Exception e) {
             lblTempFileCount.setText("Files: 0");
+            lblTempFileCount.getStyleClass().removeAll("countdown-label", "countdown-label-paste");
         }
     }
 
@@ -2165,6 +2259,12 @@ public class MainController implements ProgressObserver {
 
             dialog.addEventFilter(MouseEvent.ANY, e -> resetInactivityTimer());
             dialog.addEventFilter(KeyEvent.ANY, e -> resetInactivityTimer());
+            dialog.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
+                if (e.isControlDown() && e.getCode() == KeyCode.L) {
+                    lockScreen();
+                    e.consume();
+                }
+            });
             dialog.initModality(Modality.APPLICATION_MODAL);
             dialog.showAndWait();
 
@@ -2209,6 +2309,12 @@ public class MainController implements ProgressObserver {
 
             dialog.addEventFilter(MouseEvent.ANY, e -> resetInactivityTimer());
             dialog.addEventFilter(KeyEvent.ANY, e -> resetInactivityTimer());
+            dialog.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
+                if (e.isControlDown() && e.getCode() == KeyCode.L) {
+                    lockScreen();
+                    e.consume();
+                }
+            });
             dialog.initModality(Modality.APPLICATION_MODAL);
             dialog.showAndWait();
 
@@ -2317,19 +2423,6 @@ public class MainController implements ProgressObserver {
         Thread th = new Thread(task);
         th.setDaemon(true);
         th.start();
-    }
-
-    @FXML
-    private void handleSshCopyCommand() {
-        SshConnection selected = sshTable.getSelectionModel().getSelectedItem();
-        if (selected == null) return;
-
-        String command = buildSshCommand(selected, null);
-        javafx.scene.input.Clipboard clipboard = javafx.scene.input.Clipboard.getSystemClipboard();
-        javafx.scene.input.ClipboardContent content = new javafx.scene.input.ClipboardContent();
-        content.putString(command);
-        clipboard.setContent(content);
-        UIUtils.showToast(sshTable, I18n.t("ssh.command.copied"));
     }
 
     private void launchTerminalWithCommand(String command) {

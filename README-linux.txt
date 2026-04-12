@@ -1,5 +1,5 @@
 ===============================================================
-                  OneCritto v2.9.1 - README
+                  OneCritto v2.9.2 - README
               Linux / Portable Distribution
 ===============================================================
 
@@ -21,7 +21,7 @@
   1. Extract the entire archive to a directory of your choice,
      for example:
 
-        unzip OneCritto-2.9.1-linux.zip -d ~/
+        unzip OneCritto-2.9.2-linux.zip -d ~/
 
   2. Make the launch script executable (first time only):
 

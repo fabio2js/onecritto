@@ -150,3 +150,7 @@ jpackage/
 /jar
 /eulaEN.txt
 /HWID.txt
+guide.md
+build_linux_dist.bat
+/linux-dist/
+/linux-out/
