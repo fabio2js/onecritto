@@ -119,7 +119,7 @@ If `java -version` does not report 21, set `JAVA_HOME` to your JDK 21 installati
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/<your-org>/onecrittoV4.git
+   git clone https://github.com/fabio2js/onecrittoV4.git
    cd onecrittoV4
    ```
 
