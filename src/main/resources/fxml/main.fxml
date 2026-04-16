@@ -96,6 +96,10 @@
                                         <Button text="%main.btn.delete" onAction="#handleDeleteEntry">
                                             <graphic><FontAwesomeIconView glyphName="TRASH" glyphSize="14"/></graphic>
                                         </Button>
+                                        <Button onAction="#handlePasswordGenerator" styleClass="small-button">
+                                            <graphic><FontAwesomeIconView glyphName="MAGIC" glyphSize="14"/></graphic>
+                                            <tooltip><Tooltip text="%main.btn.pwdgen.tooltip"/></tooltip>
+                                        </Button>
 
                                         <Region HBox.hgrow="ALWAYS"/>
 

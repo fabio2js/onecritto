@@ -154,3 +154,5 @@ guide.md
 build_linux_dist.bat
 /linux-dist/
 /linux-out/
+/guida-turbolab.md
+/screenshots/

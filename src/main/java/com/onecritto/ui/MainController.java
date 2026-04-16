@@ -105,6 +105,10 @@ public class MainController implements ProgressObserver {
 
         vaultBusy = true;
 
+        // Ferma i timer di inattività per evitare lockScreen durante operazioni lunghe
+        if (inactivityTimer != null) inactivityTimer.stop();
+        if (countdownTimer != null) countdownTimer.stop();
+
         if (locked) {
             return false;
         }
@@ -123,7 +127,8 @@ public class MainController implements ProgressObserver {
 
         busyOverlay.setVisible(false);
 
-
+        // Riavvia i timer di inattività dopo il completamento dell'operazione
+        resetInactivityTimer();
     }
 
 
@@ -856,7 +861,7 @@ public class MainController implements ProgressObserver {
 
 
     protected void resetInactivityTimer() {
-        if (locked) return;
+        if (locked || vaultBusy) return;
         remainingMillis.set(INACTIVITY_TIMEOUT_MS);
         startInactivityTimer(); // <-- ricarica entrambi i timer in modo pulito
     }
@@ -1101,6 +1106,44 @@ public class MainController implements ProgressObserver {
                 fileProgressDetailsLabel.setText(msg);
             }
         });
+    }
+
+    @FXML
+    private void handlePasswordGenerator() {
+        try {
+            FXMLLoader loader = new FXMLLoader(
+                    getClass().getResource("/fxml/password_generator.fxml"),
+                    I18n.getBundle()
+            );
+
+            Stage dialog = new Stage();
+            dialog.setScene(new Scene(loader.load()));
+            dialog.setTitle(I18n.t("entry.dialog.pwdgen.title"));
+            dialog.initOwner(tableEntries.getScene().getWindow());
+            dialog.setResizable(false);
+            dialog.getScene().getStylesheets().add(
+                    Objects.requireNonNull(App.class.getResource("/css/onecritto-theme.css")).toExternalForm()
+            );
+            dialog.getIcons().add(new Image(
+                    Objects.requireNonNull(getClass().getResourceAsStream("/icons/onecritto_white_key_32x32.png"))
+            ));
+
+            PasswordGeneratorController ctrl = loader.getController();
+            ctrl.setMainController(this);
+
+            dialog.addEventFilter(MouseEvent.ANY, e -> resetInactivityTimer());
+            dialog.addEventFilter(KeyEvent.ANY, e -> resetInactivityTimer());
+            dialog.getScene().addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+                if (event.isControlDown() && event.getCode() == KeyCode.L) {
+                    lockScreen();
+                    event.consume();
+                }
+            });
+            dialog.initModality(Modality.APPLICATION_MODAL);
+            dialog.showAndWait();
+        } catch (Exception e) {
+            SecureLogger.error(e.getMessage(), e);
+        }
     }
 
     @FXML
