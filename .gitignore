@@ -122,7 +122,8 @@ github-ruleset-owner-only.json
 .rag_index
 *.py
 
-
+README.txt
+README-linux.txt
 
 ##############################
 # Logs Safebox (se abilitati)
