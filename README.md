@@ -93,8 +93,58 @@
 
 ---
 
+## Build from Source
+
+If you prefer to build and run OneCritto from source, follow the steps below. The project uses **Java 21** and **Maven**, with JavaFX 21 pulled in as a Maven dependency — no separate JavaFX SDK required.
+
+### Prerequisites
+
+| Tool | Version | Notes |
+|---|---|---|
+| **JDK** | 21 (LTS) | [Temurin](https://adoptium.net/temurin/releases/?version=21), [Liberica](https://bell-sw.com/pages/downloads/), or any OpenJDK 21 build |
+| **Maven** | 3.9+ | Or use the bundled `mvnw` wrapper |
+| **Git** | any recent | To clone the repository |
+
+Verify your environment:
+
+```bash
+java -version     # should report 21.x
+mvn -version      # should report 3.9+ and JDK 21
+```
+
+If `java -version` does not report 21, set `JAVA_HOME` to your JDK 21 installation and add `$JAVA_HOME/bin` to the `PATH`.
+
+### Step-by-step
+
+1. **Clone the repository**
+
+   ```bash
+   git clone https://github.com/<your-org>/onecrittoV4.git
+   cd onecrittoV4
+   ```
+
+2. **Run the application**
+
+   ```bash
+   mvn javafx:run
+   ```
+
+   This launches OneCritto via the `javafx-maven-plugin`, which resolves the JavaFX modules and starts the main class `com.onecritto.ui.MainApp`.
+
+
+### Windows (PowerShell) equivalent
+
+```powershell
+git clone https://github.com/<your-org>/onecrittoV4.git
+cd onecrittoV4
+.\mvnw.cmd javafx:run
+```
+
+---
+
 ## License
 
-See the [End User License Agreement](https://onecritto.com/eula.html).
+OneCritto is released under the **GNU General Public License v3.0 (GPLv3)**.
+See [EULA.md](EULA.md) for the full license summary and disclaimers, or the online version at [onecritto.com/eula.html](https://onecritto.com/eula.html).
 
-© 2025–2026 OneCritto. All rights reserved.
+© 2025–2026 OneCritto.
