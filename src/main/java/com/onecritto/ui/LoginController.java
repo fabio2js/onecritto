@@ -60,27 +60,6 @@ public class LoginController implements ProgressObserver {
     private final PasswordAnalyzer passwordAnalyzer = new PasswordAnalyzer();
 
 
-    private void openLicenseUpdateDialog() {
-        try {
-            FXMLLoader loader = new FXMLLoader(
-                    getClass().getResource("/fxml/trial_request.fxml"),
-                    I18n.getBundle()
-            );
-
-            Stage dialog = new Stage();
-            dialog.setTitle("Update License");
-            dialog.initOwner(updateLicenseLabel.getScene().getWindow()); // Modale su login window
-            dialog.initModality(Modality.APPLICATION_MODAL);
-
-            Scene scene = new Scene(loader.load());
-            dialog.setScene(scene);
-            dialog.setResizable(false);
-            dialog.showAndWait();
-
-        } catch (Exception ex) {
-            SecureLogger.error("Failed to open license update dialog", ex);
-        }
-    }
 
     @FXML
     public void initialize() {
@@ -91,18 +70,13 @@ public class LoginController implements ProgressObserver {
         btnLangIT.setOnAction(e -> changeLanguage(Locale.ITALIAN));
         btnLangEN.setOnAction(e -> changeLanguage(Locale.ENGLISH));
         updateLanguageButtons();
-        updateLicenseLabel.setOnMouseClicked(e -> openLicenseUpdateDialog());
-
         // Real-time strength bar
         strengthBar.setProgress(0);
         strengthLabel.setText("");
         masterPasswordField.setOnPwdValueChanged(this::updateStrengthBar);
     }
 
-    public void showUpdateLicense(boolean show){
 
-        updateLicenseLabel.setVisible(show);
-    }
 
     private void updateStrengthBar() {
         char[] pwd = masterPasswordField.getValue();

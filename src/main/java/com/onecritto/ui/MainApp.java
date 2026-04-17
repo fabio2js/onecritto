@@ -2,12 +2,9 @@ package com.onecritto.ui;
 
 import com.onecritto.App;
 import com.onecritto.i18n.I18n;
-import com.onecritto.licensing.TrialLicense;
 import com.onecritto.persistence.VaultRepository;
 import com.onecritto.security.TempVaultFiles;
 import com.onecritto.util.SecureLogger;
-import com.onecritto.licensing.TrialExpiredException;
-import com.onecritto.licensing.TrialLicenseManager;
 import javafx.application.Application;
 import javafx.application.HostServices;
 import javafx.application.Platform;
@@ -24,8 +21,6 @@ import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.ResourceBundle;
@@ -38,31 +33,7 @@ public class MainApp extends Application {
     );
     private static  HostServices hostServices;
 
-    private void showTrialRequestScreen() {
-        try {
-            FXMLLoader loader = new FXMLLoader(
-                    getClass().getResource("/fxml/trial_request.fxml"),
-                    enBundle
-            );
 
-            Parent root = loader.load();  // load UNA SOLA VOLTA
-
-            Stage trialStage = new Stage(); // <-- nuovo Stage indipendente
-            trialStage.setScene(new Scene(root));
-            trialStage.setTitle("OneCritto Trial Activation");
-            trialStage.getIcons().add(new Image(
-                    Objects.requireNonNull(getClass().getResourceAsStream("/icons/onecritto_white_key_32x32.png"))
-            ));
-
-            trialStage.initModality(Modality.APPLICATION_MODAL); // optional
-
-            trialStage.centerOnScreen();
-            trialStage.show();
-
-        } catch (Exception e) {
-            SecureLogger.error(e.getMessage(), e);
-        }
-    }
 
 
 
