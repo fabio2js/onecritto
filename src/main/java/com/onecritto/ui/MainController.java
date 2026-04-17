@@ -2422,6 +2422,13 @@ public class MainController implements ProgressObserver {
             return;
         }
 
+        if (keyFile.getSize() > SshConnectionController.MAX_SSH_KEY_SIZE_BYTES) {
+            UIUtils.showError(String.format(
+                    I18n.t("ssh.error.key.toolarge"),
+                    SshConnectionController.MAX_SSH_KEY_SIZE_BYTES / 1024));
+            return;
+        }
+
         if (acquireVaultLock(I18n.t("main.busy.operation"))) return;
 
         final SecretFile sf = keyFile;

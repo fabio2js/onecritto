@@ -18,6 +18,15 @@ import static com.onecritto.util.UIUtils.showError;
 
 public class SshConnectionController {
 
+    /**
+     * Dimensione massima consentita per un file usato come chiave SSH.
+     * Le chiavi SSH reali sono al massimo pochi KB (anche RSA 16384-bit + certificato
+     * OpenSSH stanno abbondantemente sotto i 32 KB). Limitiamo per evitare che
+     * l'utente selezioni per errore file grandi (video, archivi, ecc.) che
+     * richiederebbero decifratura inutile e potrebbero causare errori imprevisti.
+     */
+    public static final long MAX_SSH_KEY_SIZE_BYTES = 32L * 1024L; // 32 KB
+
     @FXML private TextField nameField;
     @FXML private TextField hostField;
     @FXML private TextField usernameField;
@@ -136,6 +145,11 @@ public class SshConnectionController {
         }
 
         SecretFile selectedKey = keyFileCombo.getValue();
+
+        if (selectedKey != null && selectedKey.getSize() > MAX_SSH_KEY_SIZE_BYTES) {
+            showError(String.format(I18n.t("ssh.error.key.toolarge"), MAX_SSH_KEY_SIZE_BYTES / 1024));
+            return;
+        }
 
         if (connection == null) {
             connection = new SshConnection(
