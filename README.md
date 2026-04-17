@@ -119,8 +119,8 @@ If `java -version` does not report 21, set `JAVA_HOME` to your JDK 21 installati
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/fabio2js/onecrittoV4.git
-   cd onecrittoV4
+   git clone https://github.com/fabio2js/onecritto.git
+   cd onecritto
    ```
 
 2. **Run the application**
@@ -135,8 +135,8 @@ If `java -version` does not report 21, set `JAVA_HOME` to your JDK 21 installati
 ### Windows (PowerShell) equivalent
 
 ```powershell
-git clone https://github.com/fabio2js/onecrittoV4.git
-cd onecrittoV4
+git clone https://github.com/fabio2js/onecritto.git
+cd onecritto
 .\mvnw.cmd javafx:run
 ```
 
