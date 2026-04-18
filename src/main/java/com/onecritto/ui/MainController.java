@@ -76,6 +76,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Stream;
 
 import static com.onecritto.util.UIUtils.*;
 
@@ -1896,10 +1897,10 @@ public class MainController implements ProgressObserver {
             }
         });
     }
-    /** Pulisce in sicurezza le password dal VaultContext */
 
 
-    private void deleteFiles() throws Exception {
+
+    private void deleteFiles()   {
         List<SecretFile> toDelete = new ArrayList<>(fileTable.getSelectionModel().getSelectedItems());
 
         // rimuovi dal vault
@@ -1979,17 +1980,16 @@ public class MainController implements ProgressObserver {
     }
 
     public void updateTempFileCount() {
-        try {
-            Path tempDir = TempVaultFiles.getTempDir();
-            long count = Files.list(tempDir).filter(Files::isRegularFile).count();
+           try ( Stream<Path> paths = Files.list(TempVaultFiles.getTempDir())){
+
+            long count = paths.filter(Files::isRegularFile).count();
+
             lblTempFileCount.setText("Files: " + count);
-            if (count > 0) {
-                lblTempFileCount.getStyleClass().removeAll("countdown-label", "countdown-label-paste");
-                lblTempFileCount.getStyleClass().add("countdown-label-paste");
-            } else {
-                lblTempFileCount.getStyleClass().removeAll("countdown-label", "countdown-label-paste");
+               lblTempFileCount.getStyleClass().removeAll("countdown-label", "countdown-label-paste");
+               if (count > 0) {
+                   lblTempFileCount.getStyleClass().add("countdown-label-paste");
             }
-        } catch (Exception e) {
+           } catch (Exception e) {
             lblTempFileCount.setText("Files: 0");
             lblTempFileCount.getStyleClass().removeAll("countdown-label", "countdown-label-paste");
         }
@@ -2239,7 +2239,7 @@ public class MainController implements ProgressObserver {
         try {
             if (Files.exists(LANG_PREF)) {
                 String lang = Files.readString(LANG_PREF).trim();
-                return new Locale(lang);
+                return   Locale.of(lang);
             }
         } catch (Exception exception) {
             SecureLogger.error(exception.getMessage(),exception);
