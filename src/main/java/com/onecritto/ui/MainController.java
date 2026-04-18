@@ -1760,9 +1760,7 @@ public class MainController implements ProgressObserver {
 
 
         long encryptedSize = sf.getSize();   // <--- importantissimo!!!
-        long plainSize     = sf.getSize();
-        byte[] iv          = sf.getIv();
-        Path vaultPath     = sf.getVaultPath();
+
 
         Task<Void> task = new Task<>() {
 

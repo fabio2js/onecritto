@@ -18,7 +18,7 @@ public class VaultMetadata {
     /** Lista delle password/account salvati */
     private List<SecretEntry> entries;
 
-    /** Lista dei file allegati */
+    /** Lista dei file  */
     private List<FileMeta> files;
 
     /** Lista delle connessioni SSH salvate */

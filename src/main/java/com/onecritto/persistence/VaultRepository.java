@@ -113,7 +113,7 @@ public class VaultRepository extends ProgressObservable {
             }
             notifyProgress(0.75);
             byte[] metadataJson = CryptoServiceV3.decryptMetadata(encMeta, key, metaIv);
-          ;
+
 
             VaultMetadata meta = mapper.readValue(metadataJson, VaultMetadata.class);
 
