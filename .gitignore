@@ -122,6 +122,8 @@ github-ruleset-owner-only.json
 .rag_index
 *.py
 
+demo-import.csv
+
 README.txt
 README-linux.txt
 

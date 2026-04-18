@@ -14,7 +14,6 @@ import javafx.scene.Scene;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.StackPane;
-import javafx.stage.Modality;
 import javafx.stage.Stage;
 
 import java.io.FileOutputStream;
@@ -27,10 +26,6 @@ import java.util.ResourceBundle;
 
 public class MainApp extends Application {
 
-    ResourceBundle enBundle = ResourceBundle.getBundle(
-            "i18n.messages",
-            Locale.ENGLISH
-    );
     private static  HostServices hostServices;
 
 
@@ -115,25 +110,8 @@ public class MainApp extends Application {
             } catch (InterruptedException ignored) {}
 
             Platform.runLater(() -> {
-                /**
-            // 2a) Licenza trial
-                if (!TrialLicenseManager.hasTrialLicense()) {
-                    splashStage.close();
-                    showTrialRequestScreen();
-                    return;
-                }
 
-                try {
-                    TrialLicenseManager.checkTrialOrThrow();
-                } catch (TrialExpiredException e) {
-                    splashStage.close();
-                    showTrialRequestScreen();
-                    return;
-                } */
 
-                //
-                // 2b) Se licenza OK → prosegui con login.fxml
-                //
                 splashStage.close();
                 try {
                     FXMLLoader loader = new FXMLLoader(
@@ -143,16 +121,7 @@ public class MainApp extends Application {
 
                     Parent root = loader.load(); // <-- PRIMA devi caricare l'FXML
 
-                    LoginController controller = loader.getController(); // <-- Adesso esiste
 
-                 /*   TrialLicense lic = TrialLicenseManager.loadLicenseFile();
-                    Instant now = Instant.now();
-
-                    long daysLeft = ChronoUnit.DAYS.between(now, lic.getExpire());
-
-                    if (daysLeft <= 30) {
-                        controller.showUpdateLicense(true);
-                    } */
 
                     Scene scene = new Scene(root);
                     scene.getStylesheets().add(

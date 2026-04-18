@@ -477,7 +477,6 @@ public class MainController implements ProgressObserver {
             Platform.runLater(() -> registerSceneActivity(mainRoot.getScene()));
         }
 
-        char[] mp =  VaultRepository.VAULT_CONTEXT.getMasterPassword();
 
         // password table
         titleColumn.setCellValueFactory(new PropertyValueFactory<>("title"));

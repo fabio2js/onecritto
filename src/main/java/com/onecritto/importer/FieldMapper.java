@@ -31,8 +31,7 @@ public class FieldMapper {
                     "login_username", TargetField.USERNAME,
                     "login_password", TargetField.PASSWORD,
                     "notes", TargetField.NOTE,
-                    "folder", TargetField.CATEGORY,
-                    "login_totp", TargetField.TOTP
+                    "folder", TargetField.CATEGORY
             )),
             Map.entry("keepass", mapOf(
                     "Title", TargetField.TITLE,
@@ -85,16 +84,14 @@ public class FieldMapper {
                     "email", TargetField.USERNAME,
                     "username", TargetField.USERNAME,
                     "password", TargetField.PASSWORD,
-                    "note", TargetField.NOTE,
-                    "totp", TargetField.TOTP
+                    "note", TargetField.NOTE
             )),
             Map.entry("safari", Map.of(
                     "Title", TargetField.TITLE,
                     "URL", TargetField.URL,
                     "Username", TargetField.USERNAME,
                     "Password", TargetField.PASSWORD,
-                    "Notes", TargetField.NOTE,
-                    "OTPAuth", TargetField.TOTP
+                    "Notes", TargetField.NOTE
             ))
     );
 

@@ -19,8 +19,6 @@ public enum TargetField {
     NOTE(List.of("note", "notes", "comment", "comments", "extra", "memo", "appunti")),
     CATEGORY(List.of("category", "group", "folder", "tag", "type", "gruppo", "cartella",
             "tipo", "grouping")),
-    TOTP(List.of("totp", "otp", "2fa", "authenticator", "mfa", "login_totp", "otpsecret",
-            "otpauth")),
     SKIP(List.of());
 
     private final List<String> synonyms;

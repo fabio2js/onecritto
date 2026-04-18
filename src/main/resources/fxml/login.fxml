@@ -101,14 +101,16 @@
                style="-fx-text-fill: #cfcfcf; -fx-font-size: 12;"/>
 
 
-        <Button fx:id="btnLangIT"
-                text="IT"
-                styleClass="lang-btn"/>
+
 
         <Button fx:id="btnLangEN"
                 text="EN"
                 styleClass="lang-btn"/>
+                
 
+        <Button fx:id="btnLangIT"
+                text="IT"
+                styleClass="lang-btn"/>
 
     </HBox>
 
