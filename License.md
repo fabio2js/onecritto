@@ -59,15 +59,14 @@ The authors are not responsible for data loss, data corruption, or loss of acces
 
 ## 6. System requirements
 
-Large encrypted files are processed directly in memory. Sufficient RAM and heap space are required, depending on the size of the files stored in the vault.
-
+Encrypted files are processed using streaming AES-GCM (Bouncy Castle), so large file are not fully loaded into memory during encryption or decryption.
 **Recommended minimum:** 64-bit CPU, 8 GB RAM, 200 MB free storage.
 
 ---
 
 ## 7. Supported platforms
 
-Tested on Windows 11 and Ubuntu Linux. It may also run on Windows 10, but compatibility is not officially guaranteed. macOS support may be added in future versions.
+Tested on Windows 11 and Ubuntu Linux. It may also run on Windows 10, but compatibility is not officially guaranteed. Idem for macOS: support may be added in future versions.
 
 ---
 
