@@ -502,7 +502,7 @@ public class MainController implements ProgressObserver {
 
      
         tableEntries.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
-        fileTable.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+        fileTable.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
         fileTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
         tableEntries.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
 
@@ -968,8 +968,8 @@ public class MainController implements ProgressObserver {
         } else if (tabIndex == 1) { // FILES TAB
 
             filteredFiles.setPredicate(f ->
-                    f.getName().toLowerCase().contains(lower) ||
-                            f.getContentType().toLowerCase().contains(lower)
+                    (f.getName() != null && f.getName().toLowerCase().contains(lower)) ||
+                            (f.getContentType() != null && f.getContentType().toLowerCase().contains(lower))
             );
         } else if (tabIndex == 2) { // SSH TAB
 
