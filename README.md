@@ -83,16 +83,6 @@
 
 ---
 
-## Quick Start (Windows)
-
-1. Download and extract the zip
-2. Double-click `OneCritto.bat`
-3. Create a new vault with a strong master password
-
-> The bundled `runtime/` folder contains everything needed — no Java installation required.
-
----
-
 ## Build from Source
 
 If you prefer to build and run OneCritto from source, follow the steps below. The project uses **Java 21** and **Maven**, with JavaFX 21 pulled in as a Maven dependency — no separate JavaFX SDK required.
@@ -114,8 +104,6 @@ mvn -version      # should report 3.9+ and JDK 21
 
 If `java -version` does not report 21, set `JAVA_HOME` to your JDK 21 installation and add `$JAVA_HOME/bin` to the `PATH`.
 
-### Step-by-step
-
 1. **Clone the repository**
 
    ```bash
@@ -128,19 +116,6 @@ If `java -version` does not report 21, set `JAVA_HOME` to your JDK 21 installati
    ```bash
    mvn javafx:run
    ```
-
-   This launches OneCritto via the `javafx-maven-plugin`, which resolves the JavaFX modules and starts the main class `com.onecritto.ui.MainApp`.
-
-
-### Windows (PowerShell) equivalent
-
-```powershell
-git clone https://github.com/fabio2js/onecritto.git
-cd onecritto
-.\mvnw.cmd javafx:run
-```
-
----
 
 ## License
 
