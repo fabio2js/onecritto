@@ -120,6 +120,6 @@ If `java -version` does not report 21, set `JAVA_HOME` to your JDK 21 installati
 ## License
 
 OneCritto is released under the **GNU General Public License v3.0 (GPLv3)**.
-See [EULA.md](EULA.md) for the full license summary and disclaimers, or the online version at [onecritto.com/eula.html](https://onecritto.com/eula.html).
+See EULA at the online version at [onecritto.com/eula.html](https://onecritto.com/eula.html).
 
 © 2025–2026 OneCritto.
