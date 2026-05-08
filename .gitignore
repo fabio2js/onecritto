@@ -89,6 +89,8 @@ jre-onecritto/
 jre-onecritto-BACKUP/
 jre-onecritto-OLD/
 fxlib/
+cert/
+Actalis/
 
 ##############################
 # Code signing

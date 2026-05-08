@@ -645,8 +645,12 @@ public class MainController implements ProgressObserver {
 
             ctxMenu.getItems().addAll(copyPwd, copyUsr);
 
+            // Context menu disponibile solo quando la riga non è vuota e
+            // la selezione è singola: con selezione multipla il "copia"
+            // sarebbe ambiguo (quale entry?), quindi lo nascondiamo.
             row.contextMenuProperty().bind(
-                Bindings.when(row.emptyProperty())
+                Bindings.when(row.emptyProperty()
+                        .or(Bindings.size(tableEntries.getSelectionModel().getSelectedItems()).greaterThan(1)))
                     .then((ContextMenu) null)
                     .otherwise(ctxMenu)
             );
@@ -2457,6 +2461,11 @@ public class MainController implements ProgressObserver {
             String command = buildSshCommand(conn, keyPath);
             launchTerminalWithCommand(command);
             updateTempFileCount();
+            // Move focus off the Connect button so a stray Enter keypress
+            // (e.g. the one the user typed to dismiss the terminal window)
+            // does not re-activate the focused button and re-trigger the
+            // connection — which would decrypt a new copy of the key.
+            sshTable.requestFocus();
         });
 
         task.setOnFailed(e -> {
@@ -2473,44 +2482,73 @@ public class MainController implements ProgressObserver {
     }
 
     private void launchTerminalWithCommand(String command) {
+        String os = System.getProperty("os.name", "").toLowerCase();
         try {
-            String os = System.getProperty("os.name", "").toLowerCase();
-            ProcessBuilder pb;
             if (os.contains("win")) {
                 // Windows: open cmd.exe with the SSH command
-                pb = new ProcessBuilder("cmd.exe", "/c", "start", "cmd.exe", "/k", command);
+                new ProcessBuilder("cmd.exe", "/c", "start", "cmd.exe", "/k", command).start();
+                return;
             } else if (os.contains("mac")) {
                 // macOS: open Terminal.app
-                pb = new ProcessBuilder("osascript", "-e",
-                        "tell application \"Terminal\" to do script \"" + command.replace("\"", "\\\"") + "\"");
-            } else {
-                // Linux: try common terminal emulators
-                String terminal = findLinuxTerminal();
-                if (terminal != null) {
-                    pb = new ProcessBuilder(terminal, "-e", command);
-                } else {
-                    // Fallback: xterm
-                    pb = new ProcessBuilder("xterm", "-e", command);
-                }
+                new ProcessBuilder("osascript", "-e",
+                        "tell application \"Terminal\" to do script \"" + command.replace("\"", "\\\"") + "\"")
+                        .start();
+                return;
             }
-            pb.start();
         } catch (Exception e) {
             SecureLogger.error("Failed to launch terminal: " + e.getMessage(), e);
             UIUtils.showError(I18n.t("ssh.error.terminal"));
+            return;
         }
-    }
 
-    private String findLinuxTerminal() {
-        String[] terminals = {"gnome-terminal", "konsole", "xfce4-terminal", "mate-terminal", "xterm"};
-        for (String t : terminals) {
+        // Linux: try a list of well-known terminal emulators in order, falling
+        // through on IOException (terminal not installed). Some emulators use
+        // a different flag than "-e" to pass the command to execute.
+        // x-terminal-emulator is the Debian/Ubuntu update-alternatives symlink
+        // and is the most reliable choice when present.
+        // IMPORTANT: most Linux terminals, when given `-e <string with spaces>`,
+        // try to find an executable whose name is the *entire string* instead of
+        // parsing it as a shell command. We therefore always wrap the SSH command
+        // with `bash -lc` so the shell does the parsing.
+        // After ssh exits we print the exit code and wait for Enter so any
+        // ssh error message stays visible (instead of being immediately
+        // replaced by an interactive bash prompt).
+        String shellCommand = command
+                + "; rc=$?; echo; echo \"[OneCritto] SSH session ended (exit code $rc).\";"
+                + " echo \"Press Enter to close this window.\"; read _";
+        String[][] candidates = new String[][] {
+                // x-terminal-emulator is the Debian/Ubuntu update-alternatives symlink.
+                { "x-terminal-emulator", "-e", "bash", "-lc", shellCommand },
+                // gnome-terminal: -- separates terminal options from the command to run.
+                { "gnome-terminal", "--", "bash", "-lc", shellCommand },
+                { "konsole", "-e", "bash", "-lc", shellCommand },
+                // xfce4-terminal's -e takes a single string and parses it itself.
+                { "xfce4-terminal", "--hold", "-x", "bash", "-lc", shellCommand },
+                { "mate-terminal", "--", "bash", "-lc", shellCommand },
+                { "tilix", "-e", "bash -lc \"" + shellCommand.replace("\"", "\\\"") + "\"" },
+                { "terminator", "-x", "bash", "-lc", shellCommand },
+                { "lxterminal", "-e", "bash -lc \"" + shellCommand.replace("\"", "\\\"") + "\"" },
+                { "qterminal", "-e", "bash -lc \"" + shellCommand.replace("\"", "\\\"") + "\"" },
+                { "kitty", "bash", "-lc", shellCommand },
+                { "alacritty", "-e", "bash", "-lc", shellCommand },
+                { "xterm", "-hold", "-e", "bash", "-lc", shellCommand }
+        };
+
+        for (String[] cmd : candidates) {
             try {
-                Process p = new ProcessBuilder("which", t).start();
-                if (p.waitFor() == 0) {
-                    return t;
-                }
-            } catch (Exception ignored) {}
+                new ProcessBuilder(cmd).start();
+                return;
+            } catch (java.io.IOException ioe) {
+                // Terminal not installed — try next candidate.
+            } catch (Exception e) {
+                SecureLogger.error("Failed to launch terminal " + cmd[0] + ": " + e.getMessage(), e);
+            }
         }
-        return null;
+
+        SecureLogger.error("No terminal emulator found on Linux. Tried: x-terminal-emulator, "
+                + "gnome-terminal, konsole, xfce4-terminal, mate-terminal, tilix, terminator, "
+                + "lxterminal, qterminal, kitty, alacritty, xterm.", null);
+        UIUtils.showError(I18n.t("ssh.error.terminal.linux"));
     }
 
    
