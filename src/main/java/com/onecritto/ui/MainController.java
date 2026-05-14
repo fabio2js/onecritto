@@ -1267,6 +1267,103 @@ public class MainController implements ProgressObserver {
         }
     }
 
+    @FXML
+    private void handleExport() {
+        try {
+            if (VaultRepository.VAULT_CONTEXT == null
+                    || VaultRepository.VAULT_CONTEXT.getVault() == null
+                    || VaultRepository.VAULT_CONTEXT.getVault().getEntries() == null
+                    || VaultRepository.VAULT_CONTEXT.getVault().getEntries().isEmpty()) {
+                UIUtils.showError(I18n.t("export.error.empty"));
+                return;
+            }
+
+            List<SecretEntry> allEntries = new ArrayList<>(
+                    VaultRepository.VAULT_CONTEXT.getVault().getEntries());
+
+            // Apri dialog di selezione
+            FXMLLoader loader = new FXMLLoader(
+                    getClass().getResource("/fxml/export_dialog.fxml"),
+                    I18n.getBundle());
+
+            Stage dialog = new Stage();
+            dialog.setScene(new Scene(loader.load()));
+            dialog.setTitle(I18n.t("export.title"));
+            dialog.initOwner(tableEntries.getScene().getWindow());
+            dialog.setResizable(true);
+            dialog.getScene().getStylesheets().add(
+                    Objects.requireNonNull(App.class.getResource("/css/onecritto-theme.css")).toExternalForm()
+            );
+            dialog.getIcons().add(new Image(
+                    Objects.requireNonNull(getClass().getResourceAsStream("/icons/onecritto_white_key_32x32.png"))
+            ));
+
+            ExportDialogController ctrl = loader.getController();
+            ctrl.setEntries(allEntries);
+
+            dialog.addEventFilter(MouseEvent.ANY, e -> resetInactivityTimer());
+            dialog.addEventFilter(KeyEvent.ANY, e -> resetInactivityTimer());
+            dialog.getScene().addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+                if (event.isControlDown() && event.getCode() == KeyCode.L) {
+                    lockScreen();
+                    event.consume();
+                }
+            });
+            dialog.initModality(Modality.APPLICATION_MODAL);
+            dialog.showAndWait();
+
+            if (!ctrl.isConfirmed()) return;
+
+            List<SecretEntry> toExport = ctrl.getSelectedEntries();
+            if (toExport.isEmpty()) return;
+
+            // Chiedi dove salvare il file CSV
+            FileChooser chooser = new FileChooser();
+            chooser.setTitle(I18n.t("export.chooser.title"));
+            chooser.getExtensionFilters().add(
+                    new FileChooser.ExtensionFilter("CSV", "*.csv"));
+            chooser.setInitialFileName("onecritto-export.csv");
+
+            java.io.File targetFile = chooser.showSaveDialog(tableEntries.getScene().getWindow());
+            if (targetFile == null) return;
+
+            // Garantisci estensione .csv
+            String path = targetFile.getAbsolutePath();
+            if (!path.toLowerCase().endsWith(".csv")) {
+                targetFile = new java.io.File(path + ".csv");
+            }
+
+            // Scrivi CSV con header compatibile con import (name,url,username,password,note)
+            try (com.opencsv.CSVWriter writer = new com.opencsv.CSVWriter(
+                    new java.io.OutputStreamWriter(
+                            new java.io.FileOutputStream(targetFile),
+                            java.nio.charset.StandardCharsets.UTF_8))) {
+
+                writer.writeNext(new String[]{"name", "url", "username", "password", "note"});
+
+                for (SecretEntry e : toExport) {
+                    String username = e.getUsername() == null ? "" : new String(e.getUsername());
+                    String password = e.getPassword() == null ? "" : new String(e.getPassword());
+                    String notes = e.getNotes() == null ? "" : new String(e.getNotes());
+                    writer.writeNext(new String[]{
+                            e.getTitle() == null ? "" : e.getTitle(),
+                            e.getUrl() == null ? "" : e.getUrl(),
+                            username,
+                            password,
+                            notes
+                    });
+                }
+            }
+
+            UIUtils.showToast(tableEntries,
+                    MessageFormat.format(I18n.t("export.toast.success"), toExport.size()));
+
+        } catch (Exception e) {
+            SecureLogger.error(e.getMessage(), e);
+            UIUtils.showError(I18n.t("export.error.generic"));
+        }
+    }
+
     private void updateVaultStats() {
         if ( VaultRepository.VAULT_CONTEXT.getVault() == null) {
 

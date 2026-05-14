@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import de.jensd.fx.glyphs.fontawesome.FontAwesomeIconView?>
+
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.onecritto.ui.ExportDialogController"
+      spacing="14"
+      prefWidth="800" prefHeight="600"
+      style="-fx-padding: 20;">
+
+    <!-- Header -->
+    <HBox spacing="10" alignment="CENTER_LEFT">
+        <FontAwesomeIconView glyphName="UPLOAD" glyphSize="22" style="-fx-fill: #3574F0;"/>
+        <Label text="%export.title" style="-fx-font-size: 18px; -fx-font-weight: bold;"/>
+    </HBox>
+
+    <Label text="%export.subtitle" styleClass="footer-label" style="-fx-text-fill: #BBBBBB;"/>
+
+    <Separator/>
+
+    <!-- Selection bar -->
+    <HBox spacing="10" alignment="CENTER_LEFT" style="-fx-padding: 8 12; -fx-background-color: #2B2D30; -fx-background-radius: 4;">
+        <CheckBox fx:id="selectAllCheckBox" selected="true"/>
+        <Label text="%export.select.all" style="-fx-text-fill: #BBBBBB;"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Label fx:id="entryCountLabel" style="-fx-font-weight: bold;"/>
+    </HBox>
+
+    <!-- Entries table -->
+    <TableView fx:id="entriesTable" VBox.vgrow="ALWAYS">
+        <columns>
+            <TableColumn fx:id="selectCol" prefWidth="40" sortable="false" resizable="false"/>
+            <TableColumn fx:id="titleCol" text="%main.col.title" prefWidth="200"/>
+            <TableColumn fx:id="usernameCol" text="%main.col.username" prefWidth="180"/>
+            <TableColumn fx:id="urlCol" text="URL" prefWidth="200"/>
+            <TableColumn fx:id="categoryCol" text="%main.col.category" prefWidth="120"/>
+        </columns>
+    </TableView>
+
+    <!-- Footer with buttons -->
+    <HBox spacing="12" alignment="CENTER_RIGHT" style="-fx-padding: 8 0 0 0;">
+        <Label fx:id="statusLabel" styleClass="footer-label" HBox.hgrow="ALWAYS"/>
+        <Button text="%cancel" onAction="#handleCancel">
+            <graphic><FontAwesomeIconView glyphName="TIMES" glyphSize="14"/></graphic>
+        </Button>
+        <Button fx:id="exportButton" text="%export.btn.confirm" onAction="#handleExport"
+                styleClass="primary-button">
+            <graphic><FontAwesomeIconView glyphName="CHECK" glyphSize="14"/></graphic>
+        </Button>
+    </HBox>
+
+</VBox>

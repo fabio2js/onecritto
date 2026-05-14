@@ -18,6 +18,35 @@
         <top>
             <VBox>
 
+                <!-- Menu bar -->
+                <MenuBar fx:id="topMenuBar" styleClass="top-menu-bar">
+                    <menus>
+                       
+                        <Menu text="%main.menu.vaultinfo">
+                            <items>
+                                <CustomMenuItem hideOnClick="false">
+                                    <content>
+                                        <VBox spacing="4">
+                                            <Label fx:id="labelPath" styleClass="footer-label"/>
+                                            <Label fx:id="labelDimension" styleClass="footer-label"/>
+                                        </VBox>
+                                    </content>
+                                </CustomMenuItem>
+                            </items>
+                        </Menu>
+                         <Menu text="%main.menu.about">
+                            <items>
+                                <CustomMenuItem hideOnClick="false">
+                                    <content>
+                                        <Label fx:id="labelLicense"
+                                               text="%main.footer.license"
+                                               styleClass="footer-label"/>
+                                    </content>
+                                </CustomMenuItem>
+                            </items>
+                        </Menu>
+                    </menus>
+                </MenuBar>
 
                 <!-- Header già esistente -->
                 <HBox spacing="15" alignment="CENTER_LEFT" styleClass="header-bar">
@@ -51,6 +80,7 @@
 
                     <HBox spacing="10" alignment="CENTER_RIGHT">
 
+   
                         <Button fx:id="homeButton" styleClass="small-button">
                             <graphic><FontAwesomeIconView glyphName="HOME" glyphSize="14"/></graphic>
                         </Button>
@@ -61,7 +91,7 @@
 
                         <TextField fx:id="searchTextField"
                                    promptText="%search.prompt"
-                                   prefWidth="200"/>
+                                   prefWidth="300"/>
                     </HBox>
                 </HBox>
 
@@ -96,24 +126,42 @@
                                         <Button text="%main.btn.delete" onAction="#handleDeleteEntry">
                                             <graphic><FontAwesomeIconView glyphName="TRASH" glyphSize="14"/></graphic>
                                         </Button>
-                                        <Button onAction="#handlePasswordGenerator" styleClass="small-button">
-                                            <graphic><FontAwesomeIconView glyphName="MAGIC" glyphSize="14"/></graphic>
-                                            <tooltip><Tooltip text="%main.btn.pwdgen.tooltip"/></tooltip>
-                                        </Button>
+                                
 
                                         <Region HBox.hgrow="ALWAYS"/>
 
-                                        <Button text="%main.btn.coach" onAction="#handlePasswordCoach">
-                                            <graphic><FontAwesomeIconView glyphName="GRADUATION_CAP" glyphSize="14"/></graphic>
-                                        </Button>
-
-                                        <Button text="%main.btn.breach" onAction="#handleBreachChecker">
-                                            <graphic><FontAwesomeIconView glyphName="SHIELD" glyphSize="14"/></graphic>
-                                        </Button>
-
-                                        <Button text="%main.btn.import" onAction="#handleImport">
+                          <Button onAction="#handleImport"  styleClass="small-button">
                                             <graphic><FontAwesomeIconView glyphName="DOWNLOAD" glyphSize="14"/></graphic>
+                                     <tooltip><Tooltip text="%main.btn.import.tooltip"/></tooltip>
                                         </Button>
+
+                                        <Button  onAction="#handleExport"  styleClass="small-button">
+                                            <graphic><FontAwesomeIconView glyphName="UPLOAD" glyphSize="14"/></graphic>
+                                            <tooltip><Tooltip text="%main.btn.export.tooltip"/></tooltip>
+                                        </Button>
+<Separator orientation="VERTICAL" styleClass="toolbar-separator"/>
+                            <Button onAction="#handlePasswordGenerator" styleClass="small-button">
+                                            <graphic><FontAwesomeIconView glyphName="MAGIC" glyphSize="14"/></graphic>
+                                            <tooltip><Tooltip text="%main.btn.pwdgen.tooltip"/></tooltip>
+                                        </Button>
+<Separator orientation="VERTICAL" styleClass="toolbar-separator"/>
+
+
+
+
+
+
+                                        <Button  onAction="#handlePasswordCoach" styleClass="small-button">
+                                            <graphic><FontAwesomeIconView glyphName="GRADUATION_CAP" glyphSize="14"/></graphic>
+                                               <tooltip><Tooltip text="%main.btn.coach"/></tooltip>
+                                        </Button>
+
+                                        <Button  onAction="#handleBreachChecker" styleClass="small-button">
+                                            <graphic><FontAwesomeIconView glyphName="SHIELD" glyphSize="14"/></graphic>
+                                             <tooltip><Tooltip text="%main.btn.breach"/></tooltip>
+                                        </Button>
+
+                               
 
 
                                     </HBox>
@@ -224,16 +272,11 @@
                 <Label fx:id="countdownLabel" styleClass="countdown-label"/>
 
                 <StackPane style="-fx-padding: 0 15 0 15;">
-                    <HBox spacing="10" alignment="CENTER_LEFT">
-                        <Label fx:id="labelPath" styleClass="footer-label"/>
-                        <Region HBox.hgrow="ALWAYS"/>
-                        <Label fx:id="labelDimension" styleClass="footer-label"/>
+                    <HBox spacing="10" alignment="CENTER_LEFT"> 
+                        <Region HBox.hgrow="ALWAYS"/> 
                     </HBox>
 
-                    <Label fx:id="labelLicense"
-                           text="%main.footer.license"
-                           StackPane.alignment="CENTER"
-                           styleClass="footer-label"/>
+                   
                 </StackPane>
 
             </VBox>
